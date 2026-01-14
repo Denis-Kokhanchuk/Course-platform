@@ -1,197 +1,4 @@
-// Головний файл для сайту
-document.addEventListener('DOMContentLoaded', function() {
-    initTheme();
-    
-    // Визначаємо на якій сторінці ми знаходимось
-    if (document.getElementById('courses-grid')) {
-        loadHomePage();
-    }
-    
-    if (document.getElementById('course-header')) {
-        loadCoursePage();
-    }
-    
-    if (document.getElementById('lesson-breadcrumb')) {
-        loadLessonPage();
-    }
-});
-
-function initTheme() {
-    const themeToggle = document.querySelector('.theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-        
-        const savedTheme = localStorage.getItem('theme') || 'dark-theme';
-        document.body.className = savedTheme;
-        updateThemeIcon(savedTheme);
-    }
-}
-
-function toggleTheme() {
-    const body = document.body;
-    const isDark = body.classList.contains('dark-theme');
-    
-    if (isDark) {
-        body.classList.remove('dark-theme');
-        localStorage.setItem('theme', 'light-theme');
-    } else {
-        body.classList.add('dark-theme');
-        localStorage.setItem('theme', 'dark-theme');
-    }
-    
-    updateThemeIcon(body.className);
-}
-
-function updateThemeIcon(theme) {
-    const icon = document.querySelector('.theme-toggle i');
-    if (icon) {
-        icon.className = theme === 'dark-theme' ? 'fas fa-sun' : 'fas fa-moon';
-    }
-}
-
-function loadHomePage() {
-    const courses = getCourses();
-    const coursesGrid = document.getElementById('courses-grid');
-    const totalVideos = document.getElementById('total-videos');
-    
-    if (!coursesGrid) return;
-    
-    let totalLessons = 0;
-    courses.forEach(course => {
-        totalLessons += getCourseLessonsCount(course.id) || 0;
-    });
-    
-    if (totalVideos) totalVideos.textContent = totalLessons;
-    
-    const totalFiles = document.getElementById('total-files');
-    if (totalFiles) totalFiles.textContent = totalLessons * 2; // Прикладна кількість
-    
-    if (courses.length === 0) {
-        coursesGrid.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-graduation-cap fa-3x"></i>
-                <h3>Курси готуються</h3>
-                <p>Скоро тут з'являться навчальні курси</p>
-            </div>
-        `;
-        return;
-    }
-    
-    coursesGrid.innerHTML = courses.map(course => {
-        const lessonsCount = getCourseLessonsCount(course.id) || 0;
-        const courseUrl = `course.html?id=${course.id}`;
-        
-        let imageUrl = course.image || 'default-course.jpg';
-        if (imageUrl && imageUrl.startsWith('file:')) {
-            const fileId = imageUrl.replace('file:', '');
-            imageUrl = getImageUrl(fileId) || 'default-course.jpg';
-        }
-        
-        return `
-            <div class="course-card">
-                <div class="course-image">
-                    <a href="${courseUrl}">
-                        <img src="${imageUrl}" 
-                             alt="${course.title || 'Курс'}"
-                             onerror="this.src='default-course.jpg'">
-                        <div class="course-badge">${lessonsCount} уроків</div>
-                    </a>
-                </div>
-                <div class="course-content">
-                    <h3><a href="${courseUrl}">${course.title || 'Без назви'}</a></h3>
-                    <p class="course-description">${course.description || ''}</p>
-                    <div class="course-meta">
-                        <div class="lessons-count">
-                            <i class="fas fa-play-circle"></i>
-                            <span>${lessonsCount} уроків</span>
-                        </div>
-                        <a href="${courseUrl}" class="btn btn-primary">
-                            Почати навчання <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-function loadCoursePage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const courseId = urlParams.get('id');
-    
-    if (!courseId) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    const course = getCourse(courseId);
-    const lessons = getLessons(courseId) || [];
-    
-    if (!course) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    const courseHeader = document.getElementById('course-header');
-    if (courseHeader) {
-        courseHeader.innerHTML = `
-            <h1 class="course-title">${course.title || 'Курс'}</h1>
-            <p class="course-full-description">${course.fullDescription || course.description || ''}</p>
-            <div class="course-stats">
-                <span class="stat-badge">
-                    <i class="fas fa-video"></i> ${lessons.length} уроків
-                </span>
-            </div>
-        `;
-    }
-    
-    const lessonsList = document.getElementById('lessons-list');
-    if (!lessonsList) return;
-    
-    if (lessons.length === 0) {
-        lessonsList.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-video-slash fa-3x"></i>
-                <h3>Уроки готуються</h3>
-                <p>Скоро тут з'являться навчальні матеріали</p>
-            </div>
-        `;
-        return;
-    }
-    
-    const sortedLessons = lessons.sort((a, b) => (a.order || 0) - (b.order || 0));
-    
-    lessonsList.innerHTML = sortedLessons.map((lesson, index) => {
-        let thumbnailUrl = lesson.thumbnail || `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`;
-        if (thumbnailUrl && thumbnailUrl.startsWith('file:')) {
-            const fileId = thumbnailUrl.replace('file:', '');
-            thumbnailUrl = getImageUrl(fileId) || `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`;
-        }
-        
-        const lessonUrl = `lesson.html?id=${lesson.id}`;
-        
-        return `
-            <div class="lesson-preview">
-                <div class="lesson-video-preview">
-                    <a href="${lessonUrl}">
-                        <img src="${thumbnailUrl}" 
-                             alt="${lesson.title || 'Урок'}"
-                             onerror="this.src='default-course.jpg'">
-                        <div class="lesson-number">Урок ${index + 1}</div>
-                    </a>
-                </div>
-                <div class="lesson-info">
-                    <h3><a href="${lessonUrl}">${lesson.title || 'Без назви'}</a></h3>
-                    <p class="lesson-preview-description">${lesson.description || ''}</p>
-                    <a href="${lessonUrl}" class="btn btn-outline">
-                        Дивитися урок <i class="fas fa-play"></i>
-                    </a>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
+// Додайте цей код до функції loadLessonPage() в app.js
 function loadLessonPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const lessonId = urlParams.get('id');
@@ -211,58 +18,222 @@ function loadLessonPage() {
     
     const course = getCourse(lesson.courseId);
     
-    const breadcrumb = document.getElementById('lesson-breadcrumb');
-    if (breadcrumb) {
-        breadcrumb.innerHTML = `
-            <a href="index.html"><i class="fas fa-home"></i> Курси</a>
-            <i class="fas fa-chevron-right"></i>
-            <a href="course.html?id=${course?.id || ''}">${course?.title || 'Курс'}</a>
-            <i class="fas fa-chevron-right"></i>
-            <span>${lesson.title || 'Урок'}</span>
-        `;
-    }
+    // ... (існуючий код для breadcrumb, header, video) ...
     
-    const lessonHeader = document.getElementById('lesson-header');
-    if (lessonHeader) {
-        lessonHeader.innerHTML = `
-            <h1>${lesson.title || 'Урок'}</h1>
-            <div class="lesson-meta">
-                <span class="meta-item">
-                    <i class="fas fa-clock"></i> ~30 хв
-                </span>
-                <span class="meta-item">
-                    <i class="fas fa-calendar"></i> ${new Date().toLocaleDateString('uk-UA')}
-                </span>
-            </div>
-        `;
-    }
-    
-    const videoPlayer = document.getElementById('video-player');
-    if (videoPlayer && lesson.videoId) {
-        videoPlayer.innerHTML = `
-            <iframe src="https://www.youtube.com/embed/${lesson.videoId}" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-            </iframe>
-        `;
-    }
-    
+    // Додаємо секцію для завантаження файлів після опису уроку
     const description = document.getElementById('lesson-full-description');
     if (description) {
-        description.innerHTML = lesson.fullDescription || lesson.description || '';
-    }
-    
-    if (isPreview) {
-        const previewNotice = document.createElement('div');
-        previewNotice.className = 'preview-notice';
-        previewNotice.innerHTML = `
-            <div class="preview-banner">
-                <i class="fas fa-eye"></i>
-                <span>Попередній перегляд</span>
-                <small>Ця сторінка не опублікована</small>
+        let descriptionHTML = lesson.fullDescription || lesson.description || '';
+        
+        // Додаємо секцію з файлами
+        descriptionHTML += `
+            <div class="lesson-files-section">
+                <h3><i class="fas fa-paperclip"></i> Матеріали уроку</h3>
+                <div class="files-grid">
+        `;
+        
+        // Презентація
+        if (lesson.presentation && lesson.presentation.startsWith('file:')) {
+            const fileId = lesson.presentation.replace('file:', '');
+            const file = getFile(fileId);
+            if (file) {
+                descriptionHTML += `
+                    <div class="file-card">
+                        <div class="file-icon">
+                            <i class="fas fa-file-powerpoint"></i>
+                        </div>
+                        <div class="file-info">
+                            <h4>Презентація</h4>
+                            <p class="file-name">${file.name}</p>
+                            <p class="file-size">${formatFileSize(file.size)}</p>
+                        </div>
+                        <button class="btn btn-outline download-btn" onclick="downloadLessonFile('${fileId}', '${file.name.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-download"></i> Завантажити
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Файл коду
+        if (lesson.codeFile && lesson.codeFile.startsWith('file:')) {
+            const fileId = lesson.codeFile.replace('file:', '');
+            const file = getFile(fileId);
+            if (file) {
+                descriptionHTML += `
+                    <div class="file-card">
+                        <div class="file-icon">
+                            <i class="fas fa-code"></i>
+                        </div>
+                        <div class="file-info">
+                            <h4>Файл коду</h4>
+                            <p class="file-name">${file.name}</p>
+                            <p class="file-size">${formatFileSize(file.size)}</p>
+                        </div>
+                        <button class="btn btn-outline download-btn" onclick="downloadLessonFile('${fileId}', '${file.name.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-download"></i> Завантажити
+                        </button>
+                    </div>
+                `;
+            }
+        }
+        
+        // Код у текстовому полі
+        if (lesson.code && lesson.code.trim()) {
+            descriptionHTML += `
+                <div class="file-card">
+                    <div class="file-icon">
+                        <i class="fas fa-code"></i>
+                    </div>
+                    <div class="file-info">
+                        <h4>Код уроку</h4>
+                        <p class="file-name">Код з поля введення</p>
+                        <p class="file-size">${lesson.code.length} символів</p>
+                    </div>
+                    <button class="btn btn-outline download-btn" onclick="downloadTextFile('lesson-code-${lessonId}.txt', \`${lesson.code.replace(/`/g, '\\`')}\`)">
+                        <i class="fas fa-download"></i> Завантажити
+                    </button>
+                </div>
+            `;
+        }
+        
+        descriptionHTML += `
+                </div>
             </div>
         `;
-        document.querySelector('main')?.prepend(previewNotice);
+        
+        description.innerHTML = descriptionHTML;
     }
+    
+    // ... (решта коду) ...
+}
+
+// Додайте ці функції до app.js
+function downloadLessonFile(fileId, fileName) {
+    if (downloadFile(fileId, fileName)) {
+        showMessage('Файл завантажується...', 'success');
+    } else {
+        showMessage('Не вдалося завантажити файл', 'error');
+    }
+}
+
+function downloadTextFile(fileName, content) {
+    try {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        showMessage('Файл завантажується...', 'success');
+        return true;
+    } catch (error) {
+        console.error('Помилка завантаження текстового файлу:', error);
+        showMessage('Не вдалося завантажити файл', 'error');
+        return false;
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function showMessage(text, type = 'info') {
+    // Проста функція для показу повідомлень
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `alert alert-${type}`;
+    messageDiv.textContent = text;
+    messageDiv.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px;
+        background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
+        color: ${type === 'success' ? '#155724' : '#721c24'};
+        border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
+        border-radius: 5px;
+        z-index: 1000;
+        animation: fadeIn 0.3s;
+    `;
+    
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.style.animation = 'fadeOut 0.3s';
+        setTimeout(() => {
+            document.body.removeChild(messageDiv);
+        }, 300);
+    }, 3000);
+}
+
+// Додайте стилі для файлів до style.css
+.lesson-files-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.files-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.file-card {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    transition: transform 0.2s;
+}
+
+.file-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.file-icon {
+    margin-right: 15px;
+}
+
+.file-icon i {
+    font-size: 24px;
+    color: #007bff;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-info h4 {
+    margin: 0 0 5px 0;
+    color: #333;
+}
+
+.file-name {
+    margin: 0;
+    color: #666;
+    font-size: 14px;
+}
+
+.file-size {
+    margin: 0;
+    color: #999;
+    font-size: 12px;
+}
+
+.download-btn {
+    white-space: nowrap;
 }
