@@ -1,140 +1,323 @@
-// Адмін-панель для Algorithmic Anchor
+// admin.js - робоча версія
 class AdminPanel {
     constructor() {
-        this.data = { ...siteData };
+        // Перевірка чи існує siteData
+        if (typeof siteData === 'undefined') {
+            console.error('siteData is not defined!');
+            this.data = {
+                courses: [],
+                lessons: [],
+                settings: {}
+            };
+        } else {
+            this.data = { ...siteData };
+        }
+        
         this.unsavedChanges = false;
         this.github = null;
         this.mediaFiles = [];
-        this.currentCourseId = null;
-        this.currentLessonId = null;
         
-        this.init();
+        console.log('AdminPanel initialized with data:', this.data);
     }
     
     init() {
+        console.log('Initializing admin panel...');
         this.bindEvents();
         this.loadData();
         this.renderCourses();
-        this.renderLessons();
-        this.updateStats();
-        this.setupFileUploads();
-        this.checkGitHubStatus();
-        this.renderMediaLibrary();
+        this.setupBasicUI();
     }
     
     bindEvents() {
-        // Навігація по вкладках
+        console.log('Binding events...');
+        
+        // Вкладки
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
+            btn.addEventListener('click', (e) => {
+                const tabId = e.target.dataset.tab;
+                this.switchTab(tabId);
+            });
         });
         
-        // Кнопки додавання
-        document.getElementById('add-course-btn')?.addEventListener('click', () => this.openCourseModal());
-        document.getElementById('add-lesson-btn')?.addEventListener('click', () => this.openLessonModal());
+        // Кнопки додавання курсу
+        const addCourseBtn = document.getElementById('add-course-btn');
+        if (addCourseBtn) {
+            addCourseBtn.addEventListener('click', () => {
+                console.log('Add course clicked');
+                this.openCourseModal();
+            });
+        }
         
-        // GitHub
-        document.getElementById('connect-github')?.addEventListener('click', () => this.connectGitHub());
+        // Кнопки додавання уроку
+        const addLessonBtn = document.getElementById('add-lesson-btn');
+        if (addLessonBtn) {
+            addLessonBtn.addEventListener('click', () => {
+                console.log('Add lesson clicked');
+                this.openLessonModal();
+            });
+        }
+        
+        // GitHub connection
+        const connectGitHubBtn = document.getElementById('connect-github');
+        if (connectGitHubBtn) {
+            connectGitHubBtn.addEventListener('click', () => this.connectGitHub());
+        }
         
         // Збереження
-        document.getElementById('save-local')?.addEventListener('click', () => this.saveLocal());
-        document.getElementById('push-github')?.addEventListener('click', () => this.pushToGitHub());
+        const saveLocalBtn = document.getElementById('save-local');
+        if (saveLocalBtn) {
+            saveLocalBtn.addEventListener('click', () => this.saveLocal());
+        }
         
-        // Форми
-        document.getElementById('course-form')?.addEventListener('submit', (e) => this.saveCourse(e));
-        document.getElementById('lesson-form')?.addEventListener('submit', (e) => this.saveLesson(e));
+        // Push to GitHub
+        const pushGitHubBtn = document.getElementById('push-github');
+        if (pushGitHubBtn) {
+            pushGitHubBtn.addEventListener('click', () => this.pushToGitHub());
+        }
         
-        // Фільтри
-        document.getElementById('lesson-course-filter')?.addEventListener('change', () => this.renderLessons());
+        // Тема
+        const themeToggle = document.querySelector('.theme-toggle');
+        if (themeToggle) {
+            themeToggle.addEventListener('click', () => this.toggleTheme());
+        }
         
-        // Попередній перегляд
-        document.getElementById('refresh-preview')?.addEventListener('click', () => this.updatePreview());
-        document.getElementById('preview-page')?.addEventListener('change', () => this.updatePreview());
-        document.getElementById('preview-course')?.addEventListener('change', () => this.updatePreviewLessons());
-        document.getElementById('preview-lesson')?.addEventListener('change', () => this.updatePreview());
-        
-        // Модальні вікна
+        // Модальні вікна закриття
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', () => this.closeModals());
         });
         
-        document.getElementById('confirm-cancel')?.addEventListener('click', () => this.closeModals());
+        // Форма курсу
+        const courseForm = document.getElementById('course-form');
+        if (courseForm) {
+            courseForm.addEventListener('submit', (e) => this.saveCourse(e));
+        }
         
-        // Тема
-        document.querySelector('.theme-toggle')?.addEventListener('click', () => this.toggleTheme());
+        // Форма уроку
+        const lessonForm = document.getElementById('lesson-form');
+        if (lessonForm) {
+            lessonForm.addEventListener('submit', (e) => this.saveLesson(e));
+        }
     }
     
-    // Завантаження даних
-    loadData() {
-        const saved = localStorage.getItem('adminData');
-        if (saved) {
-            try {
-                this.data = JSON.parse(saved);
-                this.unsavedChanges = localStorage.getItem('unsavedChanges') === 'true';
-            } catch (e) {
-                console.error('Помилка завантаження даних:', e);
-            }
-        }
+    setupBasicUI() {
+        // Активація першої вкладки
+        this.switchTab('courses');
         
-        const media = localStorage.getItem('mediaFiles');
-        if (media) {
-            try {
-                this.mediaFiles = JSON.parse(media);
-            } catch (e) {
-                console.error('Помилка завантаження медіа:', e);
-            }
-        }
-        
+        // Оновлення статусу змін
         this.updateChangesStatus();
     }
     
-    // GitHub
+    loadData() {
+        // Завантаження з localStorage
+        try {
+            const savedData = localStorage.getItem('adminData');
+            if (savedData) {
+                const parsed = JSON.parse(savedData);
+                if (parsed.courses) this.data.courses = parsed.courses;
+                if (parsed.lessons) this.data.lessons = parsed.lessons;
+                if (parsed.settings) this.data.settings = parsed.settings;
+            }
+            
+            const mediaData = localStorage.getItem('mediaFiles');
+            if (mediaData) {
+                this.mediaFiles = JSON.parse(mediaData);
+            }
+        } catch (error) {
+            console.error('Error loading data:', error);
+        }
+    }
+    
+    switchTab(tabId) {
+        console.log('Switching to tab:', tabId);
+        
+        // Оновлення кнопок вкладок
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tab === tabId) {
+                btn.classList.add('active');
+            }
+        });
+        
+        // Оновлення контенту вкладок
+        document.querySelectorAll('.tab-pane').forEach(pane => {
+            pane.classList.remove('active');
+            if (pane.id === `tab-${tabId}`) {
+                pane.classList.add('active');
+            }
+        });
+    }
+    
+    openCourseModal(courseId = null) {
+        console.log('Opening course modal, ID:', courseId);
+        const modal = document.getElementById('course-modal');
+        const title = document.getElementById('course-modal-title');
+        
+        if (courseId) {
+            // Редагування існуючого курсу
+            const course = this.data.courses.find(c => c.id === courseId);
+            if (course) {
+                title.textContent = 'Редагувати курс';
+                document.getElementById('course-id').value = course.id;
+                document.getElementById('course-title').value = course.title;
+                document.getElementById('course-slug').value = course.id;
+                document.getElementById('course-description').value = course.description;
+                document.getElementById('course-full-description').value = course.fullDescription || '';
+            }
+        } else {
+            // Новий курс
+            title.textContent = 'Новий курс';
+            document.getElementById('course-form').reset();
+            document.getElementById('course-id').value = '';
+        }
+        
+        modal.classList.remove('hidden');
+    }
+    
+    saveCourse(e) {
+        e.preventDefault();
+        console.log('Saving course...');
+        
+        const courseId = document.getElementById('course-id').value;
+        const title = document.getElementById('course-title').value;
+        const slug = document.getElementById('course-slug').value || this.generateSlug(title);
+        const description = document.getElementById('course-description').value;
+        const fullDescription = document.getElementById('course-full-description').value;
+        
+        if (!title || !description) {
+            this.showMessage('Заповніть обов\'язкові поля', 'error');
+            return;
+        }
+        
+        const courseData = {
+            id: courseId || slug,
+            title: title,
+            description: description,
+            fullDescription: fullDescription || description,
+            image: 'default-course.jpg'
+        };
+        
+        if (courseId) {
+            // Оновлення існуючого курсу
+            const index = this.data.courses.findIndex(c => c.id === courseId);
+            if (index !== -1) {
+                this.data.courses[index] = courseData;
+            }
+        } else {
+            // Додавання нового курсу
+            this.data.courses.push(courseData);
+        }
+        
+        this.markChanges();
+        this.renderCourses();
+        this.closeModals();
+        this.showMessage('Курс збережено', 'success');
+    }
+    
+    openLessonModal(lessonId = null) {
+        console.log('Opening lesson modal');
+        const modal = document.getElementById('lesson-modal');
+        
+        // Заповнення випадаючого списку курсів
+        const courseSelect = document.getElementById('lesson-course');
+        courseSelect.innerHTML = '<option value="">Виберіть курс</option>';
+        this.data.courses.forEach(course => {
+            courseSelect.innerHTML += `<option value="${course.id}">${course.title}</option>`;
+        });
+        
+        modal.classList.remove('hidden');
+    }
+    
+    saveLesson(e) {
+        e.preventDefault();
+        console.log('Saving lesson...');
+        
+        const courseId = document.getElementById('lesson-course').value;
+        const title = document.getElementById('lesson-title').value;
+        const videoId = document.getElementById('lesson-video-id').value;
+        const description = document.getElementById('lesson-description').value;
+        
+        if (!courseId || !title || !videoId || !description) {
+            this.showMessage('Заповніть обов\'язкові поля', 'error');
+            return;
+        }
+        
+        const lessonData = {
+            id: this.generateId('lesson'),
+            courseId: courseId,
+            title: title,
+            videoId: videoId,
+            description: description,
+            fullDescription: description,
+            order: this.data.lessons.filter(l => l.courseId === courseId).length + 1
+        };
+        
+        this.data.lessons.push(lessonData);
+        this.markChanges();
+        this.renderLessons();
+        this.closeModals();
+        this.showMessage('Урок збережено', 'success');
+    }
+    
     async connectGitHub() {
+        console.log('Connecting to GitHub...');
         const token = document.getElementById('github-token').value;
         const repo = document.getElementById('github-repo').value;
-        const branch = document.getElementById('github-branch').value;
+        const branch = document.getElementById('github-branch').value || 'main';
         
         if (!token || !repo) {
             this.showMessage('Введіть токен та репозиторій', 'error');
             return;
         }
         
-        this.showLoading('Підключення до GitHub...');
-        
         try {
             this.github = new GitHubAPI(token, repo, branch);
             const result = await this.github.testConnection();
             
             if (result.success) {
-                this.showMessage(`Підключено як ${result.username}`, 'success');
+                this.showMessage(`Підключено до GitHub як ${result.username}`, 'success');
                 localStorage.setItem('githubToken', token);
                 localStorage.setItem('githubRepo', repo);
                 localStorage.setItem('githubBranch', branch);
-                document.getElementById('push-github').disabled = !this.unsavedChanges;
+                
+                // Активація кнопки публікації
+                document.getElementById('push-github').disabled = false;
             } else {
                 this.showMessage('Помилка підключення: ' + result.error, 'error');
             }
         } catch (error) {
             this.showMessage('Помилка: ' + error.message, 'error');
-        } finally {
-            this.hideLoading();
         }
     }
     
-    checkGitHubStatus() {
-        const token = localStorage.getItem('githubToken');
-        const repo = localStorage.getItem('githubRepo');
-        const branch = localStorage.getItem('githubBranch');
+    async pushToGitHub() {
+        if (!this.github) {
+            this.showMessage('Спочатку підключіться до GitHub', 'error');
+            return;
+        }
         
-        if (token && repo) {
-            document.getElementById('github-token').value = token;
-            document.getElementById('github-repo').value = repo;
-            document.getElementById('github-branch').value = branch || 'main';
-            this.github = new GitHubAPI(token, repo, branch || 'main');
-            document.getElementById('push-github').disabled = !this.unsavedChanges;
+        try {
+            const dataContent = `const siteData = ${JSON.stringify(this.data, null, 2)};\n\n// Додайте ваші функції з data.js тут`;
+            
+            const result = await this.github.updateFile(
+                'data.js',
+                dataContent,
+                'Оновлення даних через адмін-панель'
+            );
+            
+            if (result.success) {
+                this.unsavedChanges = false;
+                this.updateChangesStatus();
+                document.getElementById('save-local').disabled = true;
+                document.getElementById('push-github').disabled = true;
+                this.showMessage('Дані успішно опубліковані на GitHub!', 'success');
+            } else {
+                this.showMessage('Помилка публікації: ' + result.error, 'error');
+            }
+        } catch (error) {
+            this.showMessage('Помилка: ' + error.message, 'error');
         }
     }
     
-    // Курси
     renderCourses() {
         const container = document.getElementById('courses-management');
         if (!container) return;
@@ -144,13 +327,9 @@ class AdminPanel {
                 <div class="empty-state">
                     <i class="fas fa-graduation-cap fa-3x"></i>
                     <h3>Курси відсутні</h3>
-                    <p>Створіть перший курс, щоб почати</p>
-                    <button id="create-first-course" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Створити курс
-                    </button>
+                    <p>Створіть перший курс</p>
                 </div>
             `;
-            document.getElementById('create-first-course')?.addEventListener('click', () => this.openCourseModal());
             return;
         }
         
@@ -160,9 +339,7 @@ class AdminPanel {
             html += `
                 <div class="course-card-admin" data-id="${course.id}">
                     <div class="course-image-admin">
-                        <img src="${course.image || 'default-course.jpg'}" 
-                             alt="${course.title}"
-                             onerror="this.src='default-course.jpg'">
+                        <img src="${course.image || 'default-course.jpg'}" alt="${course.title}">
                         <div class="course-actions">
                             <button class="action-btn edit-btn" onclick="admin.editCourse('${course.id}')">
                                 <i class="fas fa-edit"></i>
@@ -174,11 +351,9 @@ class AdminPanel {
                     </div>
                     <div class="course-info-admin">
                         <h4>${course.title}</h4>
-                        <p class="course-desc">${course.description.substring(0, 80)}...</p>
+                        <p>${course.description.substring(0, 80)}...</p>
                         <div class="course-meta">
-                            <span class="lessons-count">
-                                <i class="fas fa-play-circle"></i> ${lessonsCount} уроків
-                            </span>
+                            <span><i class="fas fa-play-circle"></i> ${lessonsCount} уроків</span>
                             <span class="course-id">ID: ${course.id}</span>
                         </div>
                     </div>
@@ -187,705 +362,67 @@ class AdminPanel {
         });
         html += '</div>';
         container.innerHTML = html;
-        
-        this.updateSelectors();
     }
     
-    openCourseModal(courseId = null) {
-        const modal = document.getElementById('course-modal');
-        const title = document.getElementById('course-modal-title');
-        const form = document.getElementById('course-form');
-        
-        if (courseId) {
-            const course = this.data.courses.find(c => c.id === courseId);
-            if (!course) return;
-            
-            title.textContent = 'Редагувати курс';
-            document.getElementById('course-id').value = course.id;
-            document.getElementById('course-title').value = course.title;
-            document.getElementById('course-slug').value = course.id;
-            document.getElementById('course-description').value = course.description;
-            document.getElementById('course-full-description').value = course.fullDescription || '';
-            
-            if (course.image && course.image.startsWith('file:')) {
-                const fileId = course.image.replace('file:', '');
-                const file = getFile(fileId);
-                if (file && file.content) {
-                    const preview = document.getElementById('course-image-preview');
-                    preview.innerHTML = `<img src="${file.content}" alt="Preview">`;
-                }
-            } else if (course.image) {
-                const preview = document.getElementById('course-image-preview');
-                preview.innerHTML = `<img src="${course.image}" alt="Preview">`;
-            }
-        } else {
-            title.textContent = 'Новий курс';
-            form.reset();
-            document.getElementById('course-id').value = '';
-            document.getElementById('course-slug').value = this.generateSlug('');
-        }
-        
-        const imageUpload = document.getElementById('course-image-upload');
-        imageUpload.onchange = (e) => this.handleImageUpload(e, 'course-image-preview');
-        
-        modal.classList.remove('hidden');
-    }
-    
-    async saveCourse(e) {
-        e.preventDefault();
-        
-        const courseId = document.getElementById('course-id').value;
-        const title = document.getElementById('course-title').value;
-        const slug = document.getElementById('course-slug').value;
-        const description = document.getElementById('course-description').value;
-        const fullDescription = document.getElementById('course-full-description').value;
-        
-        if (!title || !slug || !description) {
-            this.showMessage('Заповніть обов\'язкові поля', 'error');
-            return;
-        }
-        
-        const imageFile = document.getElementById('course-image-upload').files[0];
-        let imageUrl = this.data.courses.find(c => c.id === courseId)?.image || 'default-course.jpg';
-        
-        if (imageFile) {
-            const fileId = await this.saveFileToLocalStorage(imageFile);
-            imageUrl = `file:${fileId}`;
-        }
-        
-        const courseData = {
-            id: courseId || slug,
-            title,
-            description,
-            fullDescription: fullDescription || description,
-            image: imageUrl
-        };
-        
-        if (courseId) {
-            const index = this.data.courses.findIndex(c => c.id === courseId);
-            if (index !== -1) {
-                this.data.courses[index] = courseData;
-            }
-        } else {
-            courseData.lessonsCount = 0;
-            this.data.courses.push(courseData);
-        }
-        
-        this.markChanges();
-        this.renderCourses();
-        this.updateSelectors();
-        this.closeModals();
-        this.showMessage('Курс збережено', 'success');
-    }
-    
-    editCourse(courseId) {
-        this.openCourseModal(courseId);
-    }
-    
-    deleteCourse(courseId) {
-        this.showConfirm(
-            'Видалити курс?',
-            'Ця дія видалить курс та всі пов\'язані уроки. Дію не можна скасувати.',
-            () => {
-                this.data.courses = this.data.courses.filter(c => c.id !== courseId);
-                this.data.lessons = this.data.lessons.filter(l => l.courseId !== courseId);
-                this.markChanges();
-                this.renderCourses();
-                this.renderLessons();
-                this.updateSelectors();
-                this.showMessage('Курс видалено', 'success');
-            }
-        );
-    }
-    
-    // Уроки
     renderLessons() {
+        // Базова реалізація
         const container = document.getElementById('lessons-management');
-        const filter = document.getElementById('lesson-course-filter')?.value;
-        
-        if (!container) return;
-        
-        let lessons = this.data.lessons;
-        if (filter) {
-            lessons = lessons.filter(l => l.courseId === filter);
-        }
-        
-        if (lessons.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-video-slash fa-3x"></i>
-                    <h3>Уроки відсутні</h3>
-                    <p>Додайте перший урок для вибраного курсу</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        lessons.forEach(lesson => {
-            const course = this.data.courses.find(c => c.id === lesson.courseId);
-            const thumbnailUrl = lesson.thumbnail && lesson.thumbnail.startsWith('file:') 
-                ? getImageUrl(lesson.thumbnail.replace('file:', ''))
-                : (lesson.thumbnail || `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`);
-            
-            html += `
-                <div class="management-item" data-lesson-id="${lesson.id}">
-                    <div class="item-info">
-                        <div class="lesson-thumbnail">
-                            <img src="${thumbnailUrl}" 
-                                 alt="${lesson.title}"
-                                 onerror="this.src='default-course.jpg'">
-                        </div>
-                        <div class="item-details">
-                            <h4>${lesson.title}</h4>
-                            <p class="item-description">${lesson.description}</p>
-                            <div class="item-meta">
-                                <span class="course-name">${course?.title || 'Невідомий курс'}</span>
-                                <span class="lesson-id">ID: ${lesson.id}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="item-actions">
-                        <button class="action-btn edit-btn" onclick="admin.editLesson('${lesson.id}')">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn delete-btn" onclick="admin.deleteLesson('${lesson.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-    }
-    
-    openLessonModal(lessonId = null) {
-        const modal = document.getElementById('lesson-modal');
-        const title = document.getElementById('lesson-modal-title');
-        const form = document.getElementById('lesson-form');
-        
-        const courseSelect = document.getElementById('lesson-course');
-        courseSelect.innerHTML = '<option value="">Виберіть курс</option>';
-        this.data.courses.forEach(course => {
-            courseSelect.innerHTML += `<option value="${course.id}">${course.title}</option>`;
-        });
-        
-        if (lessonId) {
-            const lesson = this.data.lessons.find(l => l.id === lessonId);
-            if (!lesson) return;
-            
-            title.textContent = 'Редагувати урок';
-            document.getElementById('lesson-id').value = lesson.id;
-            document.getElementById('lesson-course').value = lesson.courseId;
-            document.getElementById('lesson-title').value = lesson.title;
-            document.getElementById('lesson-order').value = lesson.order || 1;
-            document.getElementById('lesson-video-id').value = lesson.videoId;
-            document.getElementById('lesson-description').value = lesson.description;
-            document.getElementById('lesson-full-description').value = lesson.fullDescription;
-            document.getElementById('lesson-code-text').value = lesson.code || '';
-            
-            if (lesson.thumbnail && lesson.thumbnail.startsWith('file:')) {
-                const fileId = lesson.thumbnail.replace('file:', '');
-                const file = getFile(fileId);
-                if (file && file.content) {
-                    const preview = document.getElementById('lesson-thumbnail-preview');
-                    preview.innerHTML = `<img src="${file.content}" alt="Preview">`;
-                }
-            }
-        } else {
-            title.textContent = 'Новий урок';
-            form.reset();
-            document.getElementById('lesson-id').value = '';
-            document.getElementById('lesson-order').value = this.data.lessons.filter(l => l.courseId === this.currentCourseId).length + 1;
-        }
-        
-        const thumbnailUpload = document.getElementById('lesson-thumbnail-upload');
-        const presentationUpload = document.getElementById('presentation-upload');
-        const codeUpload = document.getElementById('code-upload');
-        
-        thumbnailUpload.onchange = (e) => this.handleImageUpload(e, 'lesson-thumbnail-preview');
-        presentationUpload.onchange = (e) => this.handleFileUpload(e, 'presentation-preview', 'fas fa-file-powerpoint');
-        codeUpload.onchange = (e) => this.handleFileUpload(e, 'code-preview', 'fas fa-code');
-        
-        modal.classList.remove('hidden');
-    }
-    
-    async saveLesson(e) {
-        e.preventDefault();
-        
-        const lessonId = document.getElementById('lesson-id').value;
-        const courseId = document.getElementById('lesson-course').value;
-        const title = document.getElementById('lesson-title').value;
-        const order = parseInt(document.getElementById('lesson-order').value) || 1;
-        const videoId = document.getElementById('lesson-video-id').value;
-        const description = document.getElementById('lesson-description').value;
-        const fullDescription = document.getElementById('lesson-full-description').value;
-        const code = document.getElementById('lesson-code-text').value;
-        
-        if (!courseId || !title || !videoId || !description || !fullDescription) {
-            this.showMessage('Заповніть обов\'язкові поля', 'error');
-            return;
-        }
-        
-        const thumbnailFile = document.getElementById('lesson-thumbnail-upload').files[0];
-        const presentationFile = document.getElementById('presentation-upload').files[0];
-        const codeFile = document.getElementById('code-upload').files[0];
-        
-        let thumbnailUrl = this.data.lessons.find(l => l.id === lessonId)?.thumbnail;
-        let presentationUrl = this.data.lessons.find(l => l.id === lessonId)?.presentation;
-        let codeUrl = this.data.lessons.find(l => l.id === lessonId)?.code;
-        
-        if (thumbnailFile) {
-            const fileId = await this.saveFileToLocalStorage(thumbnailFile);
-            thumbnailUrl = `file:${fileId}`;
-        }
-        
-        if (presentationFile) {
-            const fileId = await this.saveFileToLocalStorage(presentationFile);
-            presentationUrl = `file:${fileId}`;
-        }
-        
-        if (codeFile) {
-            const fileId = await this.saveFileToLocalStorage(codeFile);
-            codeUrl = `file:${fileId}`;
-        }
-        
-        const lessonData = {
-            id: lessonId || this.generateId('lesson'),
-            courseId,
-            title,
-            order,
-            videoId,
-            description,
-            fullDescription,
-            thumbnail: thumbnailUrl,
-            presentation: presentationUrl,
-            code: code || codeUrl
-        };
-        
-        if (lessonId) {
-            const index = this.data.lessons.findIndex(l => l.id === lessonId);
-            if (index !== -1) {
-                this.data.lessons[index] = lessonData;
-            }
-        } else {
-            this.data.lessons.push(lessonData);
-        }
-        
-        this.markChanges();
-        this.renderLessons();
-        this.updateSelectors();
-        this.closeModals();
-        this.showMessage('Урок збережено', 'success');
-    }
-    
-    editLesson(lessonId) {
-        this.openLessonModal(lessonId);
-    }
-    
-    deleteLesson(lessonId) {
-        console.log('Видалення уроку з ID:', lessonId);
-        
-        this.showConfirm(
-            'Видалити урок?',
-            'Ця дія не видалить файли з сервера.',
-            () => {
-                console.log('Підтверджено видалення уроку:', lessonId);
-                
-                // Видаляємо урок
-                this.data.lessons = this.data.lessons.filter(l => l.id !== lessonId);
-                
-                // Позначаємо зміни
-                this.unsavedChanges = true;
-                this.updateChangesStatus();
-                document.getElementById('save-local').disabled = false;
-                document.getElementById('push-github').disabled = !this.github;
-                
-                // Оновлюємо інтерфейс
-                this.renderLessons();
-                this.updateSelectors();
-                this.updatePreviewLessons();
-                this.updateStats();
-                
-                console.log('Урок успішно видалено');
-                this.showMessage('Урок видалено', 'success');
-            }
-        );
-    }
-    
-    // Файли
-    async saveFileToLocalStorage(file) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const fileData = {
-                    id: this.generateId('file'),
-                    name: file.name,
-                    type: file.type,
-                    size: file.size,
-                    content: e.target.result,
-                    url: null,
-                    category: file.type.startsWith('image/') ? 'images' : 'files',
-                    uploaded: new Date().toISOString()
-                };
-                
-                this.mediaFiles.push(fileData);
-                localStorage.setItem('mediaFiles', JSON.stringify(this.mediaFiles));
-                
-                resolve(fileData.id);
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    async uploadFile(file, category) {
-        if (this.github) {
-            try {
-                const path = `uploads/${category}/${Date.now()}_${file.name}`;
-                const content = await this.readFileAsBase64(file);
-                
-                const result = await this.github.uploadFile(path, content, `Add ${file.name}`);
-                if (result.success) {
-                    return result.url || path;
-                }
-            } catch (error) {
-                console.error('Помилка завантаження на GitHub:', error);
-            }
-        }
-        
-        const fileId = await this.saveFileToLocalStorage(file);
-        return `file:${fileId}`;
-    }
-    
-    readFileAsBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => {
-                const base64 = reader.result.split(',')[1];
-                resolve(base64);
-            };
-            reader.onerror = reject;
-        });
-    }
-    
-    setupFileUploads() {
-        const imageUpload = document.getElementById('image-upload');
-        const fileUpload = document.getElementById('file-upload');
-        
-        ['image-upload-zone', 'file-upload-zone'].forEach(zoneId => {
-            const zone = document.getElementById(zoneId);
-            if (!zone) return;
-            
-            zone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                zone.classList.add('dragover');
-            });
-            
-            zone.addEventListener('dragleave', () => {
-                zone.classList.remove('dragover');
-            });
-            
-            zone.addEventListener('drop', async (e) => {
-                e.preventDefault();
-                zone.classList.remove('dragover');
-                
-                const files = Array.from(e.dataTransfer.files);
-                for (const file of files) {
-                    await this.handleDroppedFile(file);
-                }
-                
-                this.renderMediaLibrary();
-            });
-        });
-        
-        if (imageUpload) {
-            imageUpload.addEventListener('change', async (e) => {
-                const files = Array.from(e.target.files);
-                for (const file of files) {
-                    await this.handleDroppedFile(file);
-                }
-                this.renderMediaLibrary();
-                e.target.value = '';
-            });
-        }
-        
-        if (fileUpload) {
-            fileUpload.addEventListener('change', async (e) => {
-                const files = Array.from(e.target.files);
-                for (const file of files) {
-                    await this.handleDroppedFile(file);
-                }
-                this.renderMediaLibrary();
-                e.target.value = '';
-            });
-        }
-    }
-    
-    async handleDroppedFile(file) {
-        this.showLoading(`Завантаження ${file.name}...`);
-        
-        try {
-            await this.saveFileToLocalStorage(file);
-            this.showMessage(`Файл ${file.name} завантажено`, 'success');
-        } catch (error) {
-            this.showMessage(`Помилка завантаження ${file.name}: ${error.message}`, 'error');
-        } finally {
-            this.hideLoading();
-        }
-    }
-    
-    handleImageUpload(event, previewId) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const preview = document.getElementById(previewId);
-            preview.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-        };
-        reader.readAsDataURL(file);
-    }
-    
-    handleFileUpload(event, previewId, iconClass) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const preview = document.getElementById(previewId);
-        preview.innerHTML = `
-            <i class="${iconClass}"></i>
-            <span>${file.name}</span>
-            <small>${this.formatFileSize(file.size)}</small>
-        `;
-    }
-    
-    renderMediaLibrary() {
-        const container = document.getElementById('media-grid');
-        if (!container) return;
-        
-        if (this.mediaFiles.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-images fa-3x"></i>
-                    <h3>Немає файлів</h3>
-                    <p>Завантажте перші файли</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = '';
-        this.mediaFiles.forEach(file => {
-            const icon = file.type.startsWith('image/') ? 'fa-image' :
-                        file.type.includes('pdf') ? 'fa-file-pdf' :
-                        file.type.includes('presentation') ? 'fa-file-powerpoint' :
-                        file.type.includes('code') || file.name.endsWith('.py') || file.name.endsWith('.js') ? 'fa-code' :
-                        'fa-file';
-            
-            const previewContent = file.type.startsWith('image/') 
-                ? `<img src="${file.content}" alt="${file.name}">` 
-                : `<i class="fas ${icon}"></i>`;
-            
-            html += `
-                <div class="media-item" data-id="${file.id}">
-                    <div class="media-preview">
-                        ${previewContent}
-                    </div>
-                    <div class="media-info">
-                        <div class="media-name">${file.name}</div>
-                        <div class="media-meta">
-                            <span>${this.formatFileSize(file.size)}</span>
-                            <span>${new Date(file.uploaded).toLocaleDateString()}</span>
-                        </div>
-                    </div>
-                    <div class="media-actions">
-                        <button class="action-btn" onclick="admin.copyMediaUrl('${file.id}')">
-                            <i class="fas fa-link"></i>
-                        </button>
-                        <button class="action-btn delete-btn" onclick="admin.deleteMedia('${file.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        container.innerHTML = html;
-    }
-    
-    copyMediaUrl(fileId) {
-        const file = this.mediaFiles.find(f => f.id === fileId);
-        if (file && file.content) {
-            navigator.clipboard.writeText(file.content);
-            this.showMessage('URL скопійовано', 'success');
-        }
-    }
-    
-    deleteMedia(fileId) {
-        this.showConfirm(
-            'Видалити файл?',
-            'Файл буде видалено з медіа-бібліотеки.',
-            () => {
-                this.mediaFiles = this.mediaFiles.filter(f => f.id !== fileId);
-                localStorage.setItem('mediaFiles', JSON.stringify(this.mediaFiles));
-                this.renderMediaLibrary();
-                this.showMessage('Файл видалено', 'success');
-            }
-        );
-    }
-    
-    // Попередній перегляд
-    updatePreview() {
-        const page = document.getElementById('preview-page').value;
-        const courseId = document.getElementById('preview-course').value;
-        const lessonId = document.getElementById('preview-lesson').value;
-        
-        let url = 'index.html';
-        
-        switch (page) {
-            case 'course':
-                if (courseId) url = `course.html?id=${courseId}`;
-                break;
-            case 'lesson':
-                if (lessonId) url = `lesson.html?id=${lessonId}`;
-                break;
-        }
-        
-        const preview = document.getElementById('site-preview');
-        preview.innerHTML = `
-            <iframe src="${url}?preview=true" class="preview-iframe" 
-                    sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
-        `;
-    }
-    
-    updatePreviewLessons() {
-        const courseId = document.getElementById('preview-course').value;
-        const lessonSelect = document.getElementById('preview-lesson');
-        
-        lessonSelect.innerHTML = '<option value="">Виберіть урок</option>';
-        
-        if (courseId) {
-            const lessons = this.data.lessons.filter(l => l.courseId === courseId);
-            lessons.forEach(lesson => {
-                lessonSelect.innerHTML += `<option value="${lesson.id}">${lesson.title}</option>`;
-            });
-        }
-    }
-    
-    updateSelectors() {
-        const courseSelects = [
-            'lesson-course-filter',
-            'lesson-course',
-            'preview-course'
-        ];
-        
-        courseSelects.forEach(selectId => {
-            const select = document.getElementById(selectId);
-            if (!select) return;
-            
-            const currentValue = select.value;
-            select.innerHTML = '<option value="">Виберіть курс</option>';
-            
-            this.data.courses.forEach(course => {
-                select.innerHTML += `<option value="${course.id}">${course.title}</option>`;
-            });
-            
-            select.value = currentValue;
-        });
-    }
-    
-    // Збереження
-    markChanges() {
-        this.unsavedChanges = true;
-        this.updateChangesStatus();
-        document.getElementById('save-local').disabled = false;
-        document.getElementById('push-github').disabled = !this.github;
-    }
-    
-    updateChangesStatus() {
-        const count = document.getElementById('changes-count');
-        const saved = document.getElementById('last-saved');
-        
-        if (this.unsavedChanges) {
-            count.textContent = 'Є незбережені зміни';
-            count.style.color = 'var(--warning-color)';
-            saved.textContent = 'Не збережено';
-            saved.style.color = 'var(--warning-color)';
-        } else {
-            count.textContent = 'Змін немає';
-            count.style.color = 'var(--text-muted)';
-            saved.textContent = 'Збережено';
-            saved.style.color = 'var(--success-color)';
+        if (container) {
+            container.innerHTML = `<p>Загальна кількість уроків: ${this.data.lessons.length}</p>`;
         }
     }
     
     saveLocal() {
-        localStorage.setItem('adminData', JSON.stringify(this.data));
-        localStorage.setItem('unsavedChanges', 'false');
-        
-        Object.assign(siteData, this.data);
-        
-        this.unsavedChanges = false;
-        this.updateChangesStatus();
-        document.getElementById('save-local').disabled = true;
-        document.getElementById('push-github').disabled = true;
-        
-        this.showMessage('Дані збережено локально', 'success');
+        try {
+            localStorage.setItem('adminData', JSON.stringify(this.data));
+            localStorage.setItem('mediaFiles', JSON.stringify(this.mediaFiles));
+            
+            this.unsavedChanges = false;
+            this.updateChangesStatus();
+            document.getElementById('save-local').disabled = true;
+            
+            this.showMessage('Дані збережено локально', 'success');
+        } catch (error) {
+            this.showMessage('Помилка збереження: ' + error.message, 'error');
+        }
     }
     
-    async pushToGitHub() {
-        if (!this.github) {
-            this.showMessage('Спочатку підключіться до GitHub', 'error');
-            return;
+    markChanges() {
+        this.unsavedChanges = true;
+        this.updateChangesStatus();
+        document.getElementById('save-local').disabled = false;
+        if (this.github) {
+            document.getElementById('push-github').disabled = false;
+        }
+    }
+    
+    updateChangesStatus() {
+        const countElement = document.getElementById('changes-count');
+        const savedElement = document.getElementById('last-saved');
+        
+        if (countElement) {
+            countElement.textContent = this.unsavedChanges ? 'Є незбережені зміни' : 'Змін немає';
+            countElement.style.color = this.unsavedChanges ? '#ff9800' : '#4caf50';
         }
         
-        this.showConfirm(
-            'Опублікувати зміни на GitHub?',
-            'Всі зміни будуть завантажені на GitHub.',
-            async () => {
-                this.showLoading('Публікація на GitHub...');
-                
-                try {
-                    const dataContent = `const siteData = ${JSON.stringify(this.data, null, 2)};\n\n${getDataFunctions}`;
-                    
-                    const result = await this.github.updateFile(
-                        'data.js',
-                        dataContent,
-                        'Оновлення даних курсу через адмін-панель'
-                    );
-                    
-                    if (result.success) {
-                        this.unsavedChanges = false;
-                        this.updateChangesStatus();
-                        document.getElementById('save-local').disabled = true;
-                        document.getElementById('push-github').disabled = true;
-                        
-                        this.showMessage('Зміни опубліковано на GitHub!', 'success');
-                    } else {
-                        this.showMessage('Помилка публікації: ' + result.error, 'error');
-                    }
-                } catch (error) {
-                    this.showMessage('Помилка: ' + error.message, 'error');
-                } finally {
-                    this.hideLoading();
-                }
-            }
-        );
+        if (savedElement) {
+            savedElement.textContent = this.unsavedChanges ? 'Не збережено' : 'Збережено';
+            savedElement.style.color = this.unsavedChanges ? '#ff9800' : '#4caf50';
+        }
     }
     
-    // Допоміжні функції
-    switchTab(tabId) {
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.tab === tabId);
-        });
-        
-        document.querySelectorAll('.tab-pane').forEach(pane => {
-            pane.classList.toggle('active', pane.id === `tab-${tabId}`);
-        });
-        
-        if (tabId === 'media') {
-            this.renderMediaLibrary();
+    showMessage(text, type = 'info') {
+        const status = document.getElementById('github-status');
+        if (status) {
+            status.textContent = text;
+            status.className = `status-message ${type}`;
+            status.classList.remove('hidden');
+            
+            setTimeout(() => {
+                status.classList.add('hidden');
+            }, 3000);
+        } else {
+            alert(`${type.toUpperCase()}: ${text}`);
         }
     }
     
@@ -895,60 +432,22 @@ class AdminPanel {
         });
     }
     
-    showConfirm(title, message, callback) {
-        const modal = document.getElementById('confirm-modal');
-        document.getElementById('confirm-message').textContent = message;
+    toggleTheme() {
+        const body = document.body;
+        const isDark = body.classList.contains('dark-theme');
         
-        modal.classList.remove('hidden');
+        if (isDark) {
+            body.classList.remove('dark-theme');
+            body.classList.add('light-theme');
+        } else {
+            body.classList.remove('light-theme');
+            body.classList.add('dark-theme');
+        }
         
-        const confirmOk = document.getElementById('confirm-ok');
-        const confirmCancel = document.getElementById('confirm-cancel');
-        
-        const handleConfirm = () => {
-            modal.classList.add('hidden');
-            confirmOk.removeEventListener('click', handleConfirm);
-            confirmCancel.removeEventListener('click', handleCancel);
-            callback();
-        };
-        
-        const handleCancel = () => {
-            modal.classList.add('hidden');
-            confirmOk.removeEventListener('click', handleConfirm);
-            confirmCancel.removeEventListener('click', handleCancel);
-        };
-        
-        confirmOk.addEventListener('click', handleConfirm);
-        confirmCancel.addEventListener('click', handleCancel);
-    }
-    
-    showLoading(message = 'Завантаження...') {
-        const modal = document.getElementById('loading-modal');
-        document.getElementById('loading-message').textContent = message;
-        modal.classList.remove('hidden');
-    }
-    
-    hideLoading() {
-        document.getElementById('loading-modal').classList.add('hidden');
-    }
-    
-    showMessage(text, type = 'info') {
-        const status = document.getElementById('github-status');
-        status.textContent = text;
-        status.className = `status-message ${type}`;
-        status.classList.remove('hidden');
-        
-        setTimeout(() => {
-            status.classList.add('hidden');
-        }, 3000);
-    }
-    
-    updateStats() {
-        // Якщо у вас є елементи для статистики
-        const coursesCount = document.getElementById('courses-count');
-        const lessonsCount = document.getElementById('lessons-count');
-        
-        if (coursesCount) coursesCount.textContent = this.data.courses.length;
-        if (lessonsCount) lessonsCount.textContent = this.data.lessons.length;
+        const icon = document.querySelector('.theme-toggle i');
+        if (icon) {
+            icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+        }
     }
     
     generateId(prefix) {
@@ -961,164 +460,26 @@ class AdminPanel {
             .replace(/\s+/g, '-')
             .substring(0, 50);
     }
-    
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-    
-    toggleTheme() {
-        const body = document.body;
-        const isDark = body.classList.contains('dark-theme');
-        
-        if (isDark) {
-            body.classList.remove('dark-theme');
-            localStorage.setItem('theme', 'light-theme');
-        } else {
-            body.classList.add('dark-theme');
-            localStorage.setItem('theme', 'dark-theme');
-        }
-        
-        const icon = document.querySelector('.theme-toggle i');
-        if (icon) {
-            icon.className = isDark ? 'fas fa-moon' : 'fas fa-sun';
-        }
-    }
 }
 
-// Функції для data.js
-const getDataFunctions = `
-// Функції для отримання даних
-function getCourses() {
-    return siteData.courses;
-}
-
-function getCourse(courseId) {
-    return siteData.courses.find(course => course.id === courseId);
-}
-
-function getLessons(courseId) {
-    return siteData.lessons.filter(lesson => lesson.courseId === courseId);
-}
-
-function getLesson(lessonId) {
-    return siteData.lessons.find(lesson => lesson.id === lessonId);
-}
-
-function getCourseLessonsCount(courseId) {
-    return getLessons(courseId).length;
-}
-
-function getSettings() {
-    return siteData.settings;
-}
-
-// Функції для адмінки
-function saveData(newData) {
-    siteData.courses = newData.courses || siteData.courses;
-    siteData.lessons = newData.lessons || siteData.lessons;
-    siteData.settings = newData.settings || siteData.settings;
-    return true;
-}
-
-function exportData() {
-    return JSON.stringify(siteData, null, 2);
-}
-
-function importData(jsonData) {
-    try {
-        const newData = JSON.parse(jsonData);
-        saveData(newData);
-        return true;
-    } catch (error) {
-        console.error('Помилка імпорту даних:', error);
-        return false;
-    }
-}
-
-// Функції для роботи з файлами
-function getFile(fileId) {
-    try {
-        const mediaFiles = JSON.parse(localStorage.getItem('mediaFiles')) || [];
-        return mediaFiles.find(f => f.id === fileId);
-    } catch (error) {
-        console.error('Помилка завантаження файлу:', error);
-        return null;
-    }
-}
-
-function getFileUrl(fileId) {
-    const file = getFile(fileId);
-    if (file && file.content) {
-        return file.content;
-    }
-    return null;
-}
-
-function downloadFile(fileId, fileName = null) {
-    const file = getFile(fileId);
-    if (!file || !file.content) return false;
-    
-    try {
-        let content = file.content;
-        if (content.includes('base64,')) {
-            content = content.split('base64,')[1];
-        }
-        
-        const byteCharacters = atob(content);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: file.type });
-        
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName || file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        return true;
-    } catch (error) {
-        console.error('Помилка завантаження файлу:', error);
-        return false;
-    }
-}
-
-function getImageUrl(fileId) {
-    const file = getFile(fileId);
-    if (file && file.type.startsWith('image/') && file.content) {
-        return file.content;
-    }
-    return 'default-course.jpg';
-}
-
-// Функція для завантаження файлів (для адмінки)
-function saveFile(file, type) {
-    return \`uploads/\${type}/\${Date.now()}_\${file.name}\`;
-}
-`;
-
-// Ініціалізація
-let admin;
-
+// Ініціалізація при завантаженні
 document.addEventListener('DOMContentLoaded', () => {
-    admin = new AdminPanel();
+    console.log('DOM loaded, initializing admin panel...');
     
-    window.admin = admin;
-    window.clearCourseImage = () => {
+    // Створення глобального об'єкта адмінки
+    window.admin = new AdminPanel();
+    window.admin.init();
+    
+    // Глобальні функції
+    window.clearCourseImage = function() {
         const preview = document.getElementById('course-image-preview');
-        preview.innerHTML = `
-            <i class="fas fa-image"></i>
-            <span>Натисніть для завантаження зображення</span>
-        `;
-        document.getElementById('course-image-upload').value = '';
+        if (preview) {
+            preview.innerHTML = `
+                <i class="fas fa-image"></i>
+                <span>Натисніть для завантаження зображення</span>
+            `;
+        }
     };
+    
+    console.log('Admin panel ready!');
 });
