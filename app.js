@@ -2,6 +2,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     initTheme();
     
+    // Визначаємо на якій сторінці ми знаходимось
     if (document.getElementById('courses-grid')) {
         loadHomePage();
     }
@@ -53,15 +54,17 @@ function loadHomePage() {
     const coursesGrid = document.getElementById('courses-grid');
     const totalVideos = document.getElementById('total-videos');
     
-    if (!coursesGrid || !totalVideos) return;
+    if (!coursesGrid) return;
     
     let totalLessons = 0;
     courses.forEach(course => {
-        totalLessons += getCourseLessonsCount(course.id);
+        totalLessons += getCourseLessonsCount(course.id) || 0;
     });
     
-    totalVideos.textContent = totalLessons;
-    document.getElementById('total-files').textContent = totalLessons * 3;
+    if (totalVideos) totalVideos.textContent = totalLessons;
+    
+    const totalFiles = document.getElementById('total-files');
+    if (totalFiles) totalFiles.textContent = totalLessons * 2; // Прикладна кількість
     
     if (courses.length === 0) {
         coursesGrid.innerHTML = `
@@ -75,11 +78,11 @@ function loadHomePage() {
     }
     
     coursesGrid.innerHTML = courses.map(course => {
-        const lessonsCount = getCourseLessonsCount(course.id);
+        const lessonsCount = getCourseLessonsCount(course.id) || 0;
         const courseUrl = `course.html?id=${course.id}`;
         
         let imageUrl = course.image || 'default-course.jpg';
-        if (imageUrl.startsWith('file:')) {
+        if (imageUrl && imageUrl.startsWith('file:')) {
             const fileId = imageUrl.replace('file:', '');
             imageUrl = getImageUrl(fileId) || 'default-course.jpg';
         }
@@ -89,14 +92,14 @@ function loadHomePage() {
                 <div class="course-image">
                     <a href="${courseUrl}">
                         <img src="${imageUrl}" 
-                             alt="${course.title}"
+                             alt="${course.title || 'Курс'}"
                              onerror="this.src='default-course.jpg'">
                         <div class="course-badge">${lessonsCount} уроків</div>
                     </a>
                 </div>
                 <div class="course-content">
-                    <h3><a href="${courseUrl}">${course.title}</a></h3>
-                    <p class="course-description">${course.description}</p>
+                    <h3><a href="${courseUrl}">${course.title || 'Без назви'}</a></h3>
+                    <p class="course-description">${course.description || ''}</p>
                     <div class="course-meta">
                         <div class="lessons-count">
                             <i class="fas fa-play-circle"></i>
@@ -122,7 +125,7 @@ function loadCoursePage() {
     }
     
     const course = getCourse(courseId);
-    const lessons = getLessons(courseId);
+    const lessons = getLessons(courseId) || [];
     
     if (!course) {
         window.location.href = 'index.html';
@@ -130,17 +133,20 @@ function loadCoursePage() {
     }
     
     const courseHeader = document.getElementById('course-header');
-    courseHeader.innerHTML = `
-        <h1 class="course-title">${course.title}</h1>
-        <p class="course-full-description">${course.fullDescription || course.description}</p>
-        <div class="course-stats">
-            <span class="stat-badge">
-                <i class="fas fa-video"></i> ${lessons.length} уроків
-            </span>
-        </div>
-    `;
+    if (courseHeader) {
+        courseHeader.innerHTML = `
+            <h1 class="course-title">${course.title || 'Курс'}</h1>
+            <p class="course-full-description">${course.fullDescription || course.description || ''}</p>
+            <div class="course-stats">
+                <span class="stat-badge">
+                    <i class="fas fa-video"></i> ${lessons.length} уроків
+                </span>
+            </div>
+        `;
+    }
     
     const lessonsList = document.getElementById('lessons-list');
+    if (!lessonsList) return;
     
     if (lessons.length === 0) {
         lessonsList.innerHTML = `
@@ -157,28 +163,27 @@ function loadCoursePage() {
     
     lessonsList.innerHTML = sortedLessons.map((lesson, index) => {
         let thumbnailUrl = lesson.thumbnail || `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`;
-        if (thumbnailUrl.startsWith('file:')) {
+        if (thumbnailUrl && thumbnailUrl.startsWith('file:')) {
             const fileId = thumbnailUrl.replace('file:', '');
             thumbnailUrl = getImageUrl(fileId) || `https://img.youtube.com/vi/${lesson.videoId}/hqdefault.jpg`;
         }
         
+        const lessonUrl = `lesson.html?id=${lesson.id}`;
+        
         return `
             <div class="lesson-preview">
                 <div class="lesson-video-preview">
-                    <a href="lesson.html?id=${lesson.id}">
+                    <a href="${lessonUrl}">
                         <img src="${thumbnailUrl}" 
-                             alt="${lesson.title}"
+                             alt="${lesson.title || 'Урок'}"
                              onerror="this.src='default-course.jpg'">
                         <div class="lesson-number">Урок ${index + 1}</div>
-                        <div class="play-overlay">
-                            <i class="fas fa-play"></i>
-                        </div>
                     </a>
                 </div>
                 <div class="lesson-info">
-                    <h3><a href="lesson.html?id=${lesson.id}">${lesson.title}</a></h3>
-                    <p class="lesson-preview-description">${lesson.description}</p>
-                    <a href="lesson.html?id=${lesson.id}" class="btn btn-outline">
+                    <h3><a href="${lessonUrl}">${lesson.title || 'Без назви'}</a></h3>
+                    <p class="lesson-preview-description">${lesson.description || ''}</p>
+                    <a href="${lessonUrl}" class="btn btn-outline">
                         Дивитися урок <i class="fas fa-play"></i>
                     </a>
                 </div>
@@ -211,16 +216,16 @@ function loadLessonPage() {
         breadcrumb.innerHTML = `
             <a href="index.html"><i class="fas fa-home"></i> Курси</a>
             <i class="fas fa-chevron-right"></i>
-            <a href="course.html?id=${course.id}">${course.title}</a>
+            <a href="course.html?id=${course?.id || ''}">${course?.title || 'Курс'}</a>
             <i class="fas fa-chevron-right"></i>
-            <span>${lesson.title}</span>
+            <span>${lesson.title || 'Урок'}</span>
         `;
     }
     
     const lessonHeader = document.getElementById('lesson-header');
     if (lessonHeader) {
         lessonHeader.innerHTML = `
-            <h1>${lesson.title}</h1>
+            <h1>${lesson.title || 'Урок'}</h1>
             <div class="lesson-meta">
                 <span class="meta-item">
                     <i class="fas fa-clock"></i> ~30 хв
@@ -233,7 +238,7 @@ function loadLessonPage() {
     }
     
     const videoPlayer = document.getElementById('video-player');
-    if (videoPlayer) {
+    if (videoPlayer && lesson.videoId) {
         videoPlayer.innerHTML = `
             <iframe src="https://www.youtube.com/embed/${lesson.videoId}" 
                     frameborder="0" 
@@ -245,10 +250,8 @@ function loadLessonPage() {
     
     const description = document.getElementById('lesson-full-description');
     if (description) {
-        description.innerHTML = lesson.fullDescription;
+        description.innerHTML = lesson.fullDescription || lesson.description || '';
     }
-    
-    loadLessonMaterials(lesson);
     
     if (isPreview) {
         const previewNotice = document.createElement('div');
@@ -263,146 +266,3 @@ function loadLessonPage() {
         document.querySelector('main')?.prepend(previewNotice);
     }
 }
-
-function loadLessonMaterials(lesson) {
-    const presentationSection = document.getElementById('presentation-section');
-    if (presentationSection) {
-        if (lesson.presentation) {
-            if (lesson.presentation.startsWith('file:')) {
-                const fileId = lesson.presentation.replace('file:', '');
-                presentationSection.innerHTML = `
-                    <div class="material-card">
-                        <div class="material-icon">
-                            <i class="fas fa-file-pdf"></i>
-                        </div>
-                        <div class="material-info">
-                            <h4>Презентація уроку</h4>
-                            <p>Завантажте презентацію для детального вивчення</p>
-                            <button onclick="downloadLessonFile('${fileId}')" 
-                                    class="btn btn-outline">
-                                <i class="fas fa-download"></i> Завантажити
-                            </button>
-                        </div>
-                    </div>
-                `;
-            } else if (lesson.presentation.startsWith('http')) {
-                presentationSection.innerHTML = `
-                    <div class="material-card">
-                        <div class="material-icon">
-                            <i class="fas fa-file-pdf"></i>
-                        </div>
-                        <div class="material-info">
-                            <h4>Презентація уроку</h4>
-                            <p>Завантажте презентацію для детального вивчення</p>
-                            <a href="${lesson.presentation}" 
-                               download 
-                               class="btn btn-outline">
-                                <i class="fas fa-download"></i> Завантажити
-                            </a>
-                        </div>
-                    </div>
-                `;
-            }
-        } else {
-            presentationSection.innerHTML = `
-                <div class="empty-material">
-                    <i class="fas fa-file-powerpoint"></i>
-                    <p>Презентація не додана</p>
-                </div>
-            `;
-        }
-    }
-    
-    const codeSection = document.getElementById('code-section');
-    if (codeSection) {
-        if (lesson.code) {
-            if (lesson.code.startsWith('file:')) {
-                const fileId = lesson.code.replace('file:', '');
-                codeSection.innerHTML = `
-                    <div class="code-header">
-                        <div>
-                            <i class="fas fa-code"></i>
-                            <span>Файли коду</span>
-                        </div>
-                        <button onclick="downloadLessonFile('${fileId}')" 
-                                class="btn btn-outline">
-                            <i class="fas fa-download"></i> Завантажити
-                        </button>
-                    </div>
-                    <div class="code-info">
-                        <p>Завантажте файли з кодом для практики</p>
-                    </div>
-                `;
-            } else if (lesson.code.startsWith('http')) {
-                codeSection.innerHTML = `
-                    <div class="code-header">
-                        <div>
-                            <i class="fas fa-code"></i>
-                            <span>Файли коду</span>
-                        </div>
-                        <a href="${lesson.code}" download class="btn btn-outline">
-                            <i class="fas fa-download"></i> Завантажити
-                        </a>
-                    </div>
-                    <div class="code-info">
-                        <p>Завантажте файли з кодом для практики</p>
-                    </div>
-                `;
-            } else {
-                codeSection.innerHTML = `
-                    <div class="code-header">
-                        <div>
-                            <i class="fas fa-code"></i>
-                            <span>Код уроку</span>
-                        </div>
-                        <button onclick="downloadCode()" class="btn btn-outline">
-                            <i class="fas fa-download"></i> Завантажити
-                        </button>
-                    </div>
-                    <div class="code-block">
-                        <pre><code class="language-python">${lesson.code}</code></pre>
-                    </div>
-                `;
-                
-                if (typeof hljs !== 'undefined') {
-                    setTimeout(() => hljs.highlightAll(), 100);
-                }
-            }
-        } else {
-            codeSection.innerHTML = `
-                <div class="empty-material">
-                    <i class="fas fa-code"></i>
-                    <p>Код не доданий</p>
-                </div>
-            `;
-        }
-    }
-}
-
-function downloadLessonFile(fileId) {
-    const success = downloadFile(fileId);
-    if (!success) {
-        alert('Не вдалося завантажити файл. Спробуйте ще раз.');
-    }
-}
-
-function downloadCode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const lessonId = urlParams.get('id');
-    const lesson = getLesson(lessonId);
-    
-    if (!lesson || !lesson.code) return;
-    
-    const blob = new Blob([lesson.code], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${lesson.title.replace(/\s+/g, '_')}.py`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-window.downloadCode = downloadCode;
-window.downloadLessonFile = downloadLessonFile;
