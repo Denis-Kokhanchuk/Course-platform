@@ -216,6 +216,9 @@ class AdminPanel {
                         this.unsavedChanges = false;
                         this.updateChangesStatus();
                         
+                        // Показуємо інструкції для оновлення сайту
+                        this.showSiteUpdateInstructions();
+                        
                         this.showMessage('Зміни опубліковано на GitHub!', 'success');
                     } else {
                         this.showMessage('Помилка публікації: ' + result.error, 'error');
@@ -229,10 +232,110 @@ class AdminPanel {
         );
     }
     
+    // НОВИЙ МЕТОД: показує інструкції для оновлення сайту
+    showSiteUpdateInstructions() {
+        const siteUrl = window.location.origin.includes('admin') 
+            ? window.location.origin.replace('/admin', '')
+            : window.location.origin;
+        
+        const instructionsHtml = `
+            <div class="update-instructions">
+                <h3 style="margin-top: 0; color: var(--success-color);">
+                    <i class="fas fa-check-circle"></i> Дані опубліковано на GitHub
+                </h3>
+                <p>Щоб оновити дані на сайті:</p>
+                
+                <div class="instructions" style="margin-top: 15px;">
+                    <h4 style="margin-bottom: 10px;">Спосіб 1: Відкрити сайт</h4>
+                    <p>Сайт має автоматично оновити дані при завантаженні.</p>
+                    <button id="open-site-btn" class="btn btn-primary" style="margin: 10px 0;">
+                        <i class="fas fa-external-link-alt"></i> Відкрити сайт
+                    </button>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">Спосіб 2: Оновити вручну</h4>
+                    <p>Якщо дані не оновилися:</p>
+                    <ol style="margin-left: 20px; margin-bottom: 15px;">
+                        <li>Відкрийте сайт: <a href="${siteUrl}" target="_blank" style="color: var(--primary-color);">${siteUrl}</a></li>
+                        <li>Натисніть <strong>F12</strong> для відкриття DevTools</li>
+                        <li>Перейдіть на вкладку <strong>Console</strong></li>
+                        <li>Введіть команду: <code style="background: #f0f0f0; padding: 2px 5px; border-radius: 3px;">updateDataFromGitHub()</code></li>
+                    </ol>
+                    
+                    <h4 style="margin-top: 20px; margin-bottom: 10px;">Спосіб 3: Копіювати команду</h4>
+                    <div style="background: #f5f5f5; padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+                        <code id="update-command" style="font-family: monospace;">
+fetch('https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js')
+  .then(r => r.text())
+  .then(d => {
+    const match = d.match(/const siteData = (\\{.*?\\});/s);
+    if (match) {
+      window.siteData = JSON.parse(match[1]);
+      console.log('✅ Дані оновлено!');
+      if (typeof renderCourses === 'function') renderCourses();
+    }
+  })
+                        </code>
+                        <button id="copy-command-btn" class="btn btn-secondary" style="margin-top: 10px;">
+                            <i class="fas fa-copy"></i> Копіювати команду
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        const modal = document.getElementById('instructions-modal');
+        if (!modal) {
+            // Створюємо модальне вікно для інструкцій
+            const modalHtml = `
+                <div id="instructions-modal" class="modal" style="display: block;">
+                    <div class="modal-content" style="max-width: 600px;">
+                        <div class="modal-header">
+                            <h3>Оновлення сайту</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body" id="instructions-content">
+                            ${instructionsHtml}
+                        </div>
+                        <div class="modal-footer">
+                            <button id="close-instructions" class="btn">Закрити</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Додаємо обробники подій
+            document.getElementById('open-site-btn')?.addEventListener('click', () => {
+                window.open(siteUrl, '_blank');
+            });
+            
+            document.getElementById('copy-command-btn')?.addEventListener('click', () => {
+                const command = document.getElementById('update-command').textContent;
+                navigator.clipboard.writeText(command);
+                this.showMessage('Команду скопійовано', 'success');
+            });
+            
+            document.getElementById('close-instructions')?.addEventListener('click', () => {
+                document.getElementById('instructions-modal').remove();
+            });
+            
+            document.querySelector('#instructions-modal .modal-close')?.addEventListener('click', () => {
+                document.getElementById('instructions-modal').remove();
+            });
+        }
+    }
+    
     generateDataJSContent() {
+        // Оновлюємо lessonsCount для кожного курсу
+        const courses = JSON.parse(JSON.stringify(this.data.courses || []));
+        courses.forEach(course => {
+            course.lessonsCount = (this.data.lessons || []).filter(l => l.courseId === course.id).length;
+        });
+        
         // Створюємо чистий об'єкт без зайвих методів
         const cleanData = {
-            courses: JSON.parse(JSON.stringify(this.data.courses || [])),
+            courses: courses,
             lessons: JSON.parse(JSON.stringify(this.data.lessons || [])),
             settings: {
                 siteName: "Algorithmic Anchor",
@@ -268,6 +371,58 @@ function getCourseLessonsCount(courseId) {
 function getSettings() {
     return siteData.settings || {};
 }
+
+// Функція для автоматичного оновлення даних з GitHub
+async function updateDataFromGitHub() {
+    try {
+        console.log('Оновлення даних з GitHub...');
+        const response = await fetch(
+            'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?t=' + Date.now()
+        );
+        const text = await response.text();
+        
+        // Знаходимо siteData в тексті
+        const match = text.match(/const siteData = (\\{.*?\\});/s);
+        if (match) {
+            try {
+                const newData = JSON.parse(match[1]);
+                window.siteData = newData;
+                
+                console.log('✅ Дані оновлено з GitHub!');
+                
+                // Оновлюємо UI
+                if (typeof window.renderCourses === 'function') {
+                    window.renderCourses();
+                }
+                
+                // Повідомляємо користувача
+                if (window.showNotification) {
+                    window.showNotification('Дані успішно оновлено!', 'success');
+                }
+                
+                return true;
+            } catch (parseError) {
+                console.error('Помилка парсингу:', parseError);
+                return false;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Помилка завантаження:', error);
+        return false;
+    }
+}
+
+// Автоматичне оновлення при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', function() {
+    // Оновлюємо кожні 5 хвилин
+    setInterval(updateDataFromGitHub, 5 * 60 * 1000);
+    
+    // Оновлюємо якщо в URL є параметр update
+    if (new URLSearchParams(window.location.search).has('update')) {
+        updateDataFromGitHub();
+    }
+});
 
 // Функції для роботи з файлами
 function getFile(fileId) {
@@ -1207,6 +1362,51 @@ function getImageUrl(fileId) {
     }
 }
 
+// Глобальна функція для оновлення даних (доступна в консолі браузера)
+window.updateDataFromGitHub = async function() {
+    try {
+        console.log('🔄 Оновлення даних з GitHub...');
+        
+        const response = await fetch(
+            'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?t=' + Date.now()
+        );
+        const text = await response.text();
+        
+        // Знаходимо siteData в тексті
+        const match = text.match(/const siteData = (\{[\s\S]*?\});/);
+        if (match) {
+            try {
+                const newData = JSON.parse(match[1]);
+                window.siteData = newData;
+                
+                console.log('✅ Дані успішно оновлено з GitHub!', newData);
+                
+                // Оновлюємо UI якщо функція існує
+                if (typeof window.renderCourses === 'function') {
+                    window.renderCourses();
+                    console.log('🎨 Інтерфейс оновлено');
+                }
+                
+                // Показуємо повідомлення
+                alert('✅ Дані успішно оновлено з GitHub!');
+                return true;
+            } catch (parseError) {
+                console.error('❌ Помилка парсингу:', parseError);
+                alert('❌ Помилка обробки даних');
+                return false;
+            }
+        } else {
+            console.error('❌ Не вдалося знайти siteData у файлі');
+            alert('❌ Не вдалося знайти дані у файлі');
+            return false;
+        }
+    } catch (error) {
+        console.error('❌ Помилка завантаження:', error);
+        alert('❌ Помилка завантаження даних з GitHub');
+        return false;
+    }
+};
+
 // Ініціалізація
 let admin;
 
@@ -1215,6 +1415,7 @@ document.addEventListener('DOMContentLoaded', () => {
         admin = new AdminPanel();
         window.admin = admin;
         
+        // Глобальні функції
         window.clearCourseImage = () => {
             const preview = document.getElementById('course-image-preview');
             preview.innerHTML = `
@@ -1224,40 +1425,32 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('course-image-upload').value = '';
         };
         
-        console.log('Адмін-панель успішно завантажена');
+        // Функція для швидкого тестування GitHub
+        window.testGitHubUpdate = () => {
+            const testCommand = `
+fetch('https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js')
+  .then(r => r.text())
+  .then(d => {
+    console.log('Довжина файлу:', d.length);
+    const match = d.match(/const siteData = (\\{.*?\\});/s);
+    if (match) {
+      console.log('siteData знайдено!');
+      console.log('Перші 500 символів:', match[1].substring(0, 500));
+    } else {
+      console.log('siteData не знайдено');
+    }
+  });
+            `;
+            console.log('Команда для тестування:');
+            console.log(testCommand);
+            alert('Команда скопійована в консоль! Відкрийте DevTools (F12) та вставте в консолі.');
+        };
+        
+        console.log('🚀 Адмін-панель успішно завантажена');
+        console.log('💡 Для оновлення даних на сайті використовуйте: updateDataFromGitHub()');
+        
     } catch (error) {
-        console.error('Помилка завантаження адмін-панелі:', error);
+        console.error('❌ Помилка завантаження адмін-панелі:', error);
         alert('Помилка завантаження адмін-панелі: ' + error.message);
     }
 });
-
-// Функція для автоматичного оновлення даних з GitHub
-async function updateDataFromGitHub() {
-  try {
-    const response = await fetch(
-      'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?v=' + Date.now()
-    );
-    const text = await response.text();
-    
-    // Знаходимо siteData в тексті
-    const match = text.match(/const siteData = (\{[\s\S]*?\});/);
-    if (match) {
-      const newData = JSON.parse(match[1]);
-      window.siteData = newData;
-      console.log('Дані оновлено з GitHub');
-      
-      // Перезавантажуємо UI якщо потрібно
-      if (typeof window.renderCourses === 'function') {
-        window.renderCourses();
-      }
-    }
-  } catch (error) {
-    console.warn('Не вдалося оновити дані з GitHub:', error);
-  }
-}
-
-// Оновлюємо при завантаженні сторінки
-document.addEventListener('DOMContentLoaded', updateDataFromGitHub);
-
-// Оновлюємо кожні 5 хвилин
-setInterval(updateDataFromGitHub, 5 * 60 * 1000);
