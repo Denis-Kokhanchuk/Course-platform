@@ -1230,3 +1230,34 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Помилка завантаження адмін-панелі: ' + error.message);
     }
 });
+
+// Функція для автоматичного оновлення даних з GitHub
+async function updateDataFromGitHub() {
+  try {
+    const response = await fetch(
+      'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?v=' + Date.now()
+    );
+    const text = await response.text();
+    
+    // Знаходимо siteData в тексті
+    const match = text.match(/const siteData = (\{[\s\S]*?\});/);
+    if (match) {
+      const newData = JSON.parse(match[1]);
+      window.siteData = newData;
+      console.log('Дані оновлено з GitHub');
+      
+      // Перезавантажуємо UI якщо потрібно
+      if (typeof window.renderCourses === 'function') {
+        window.renderCourses();
+      }
+    }
+  } catch (error) {
+    console.warn('Не вдалося оновити дані з GitHub:', error);
+  }
+}
+
+// Оновлюємо при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', updateDataFromGitHub);
+
+// Оновлюємо кожні 5 хвилин
+setInterval(updateDataFromGitHub, 5 * 60 * 1000);
