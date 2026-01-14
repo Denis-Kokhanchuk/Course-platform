@@ -1,15 +1,19 @@
 // Algorithmic Anchor - Основний JavaScript файл
-let currentPage = 'home';
+let isInitialized = false;
 
 // Функція для відображення курсів
 function renderCourses() {
+    console.log('🔄 Оновлення списку курсів...');
+    
     const coursesGrid = document.getElementById('courses-grid');
     const courses = getCourses();
     
     if (!coursesGrid) {
-        console.error('Не знайдено елемент #courses-grid');
+        console.error('❌ Не знайдено елемент #courses-grid');
         return;
     }
+    
+    console.log(`📊 Знайдено курсів у даних: ${courses?.length || 0}`);
     
     if (!courses || courses.length === 0) {
         coursesGrid.innerHTML = `
@@ -54,6 +58,7 @@ function renderCourses() {
     
     coursesGrid.innerHTML = html;
     updateStats();
+    console.log(`✅ Відображено курсів: ${courses.length}`);
 }
 
 // Оновлення статистики
@@ -73,6 +78,8 @@ function updateStats() {
     
     if (totalVideosEl) totalVideosEl.textContent = totalVideos;
     if (totalFilesEl) totalFilesEl.textContent = totalFiles;
+    
+    console.log(`📈 Статистика: ${totalVideos} уроків, ${totalFiles} файлів`);
 }
 
 // Функція для автоматичного оновлення даних з GitHub
@@ -81,41 +88,70 @@ async function updateDataFromGitHub() {
         console.log('🔄 Перевірка оновлень на GitHub...');
         
         const response = await fetch(
-            'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?t=' + Date.now()
+            'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?nocache=' + Date.now(),
+            { cache: 'no-store' }
         );
         
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            console.error(`❌ HTTP помилка: ${response.status}`);
+            return false;
         }
         
         const text = await response.text();
         
         // Знаходимо siteData в тексті
-        const match = text.match(/const siteData = (\{[\s\S]*?\});/);
-        if (match) {
-            try {
-                const newData = JSON.parse(match[1]);
-                
-                // Оновлюємо глобальні дані
-                window.siteData = newData;
-                
-                console.log('✅ Дані оновлено з GitHub! Знайдено курсів:', newData.courses?.length || 0);
-                
-                // Автоматично перемальовуємо курси
-                renderCourses();
-                
-                return true;
-            } catch (parseError) {
-                console.error('❌ Помилка парсингу даних:', parseError);
+        const match = text.match(/const siteData = (\{[\s\S]*?\});/s);
+        if (!match) {
+            console.error('❌ Не вдалося знайти siteData у файлі');
+            return false;
+        }
+        
+        try {
+            const newData = JSON.parse(match[1]);
+            
+            // Перевіряємо, чи дані дійсно змінилися
+            const oldData = JSON.stringify(window.siteData);
+            const newDataStr = JSON.stringify(newData);
+            
+            if (oldData === newDataStr) {
+                console.log('ℹ️ Дані не змінилися');
                 return false;
             }
-        } else {
-            console.error('❌ Не вдалося знайти siteData у файлі');
+            
+            // Оновлюємо глобальні дані
+            window.siteData = newData;
+            
+            console.log(`✅ Дані оновлено! Курсів: ${newData.courses?.length || 0}`);
+            
+            // Автоматично перемальовуємо курси
+            renderCourses();
+            
+            return true;
+        } catch (parseError) {
+            console.error('❌ Помилка парсингу даних:', parseError);
             return false;
         }
     } catch (error) {
         console.error('❌ Помилка завантаження з GitHub:', error);
         return false;
+    }
+}
+
+// Примусове оновлення з GitHub
+async function forceUpdateFromGitHub() {
+    console.log('🔁 Примусове оновлення з GitHub...');
+    
+    // Видаляємо кеш
+    localStorage.removeItem('adminData');
+    
+    // Оновлюємо дані
+    const updated = await updateDataFromGitHub();
+    
+    if (updated) {
+        console.log('✅ Примусове оновлення успішне');
+        alert('✅ Дані успішно оновлено!');
+    } else {
+        console.log('ℹ️ Дані не потребують оновлення');
     }
 }
 
@@ -158,65 +194,80 @@ function setupThemeToggle() {
 }
 
 // Основна функція ініціалізації
-function initApp() {
+async function initApp() {
+    if (isInitialized) {
+        console.log('ℹ️ Додаток вже ініціалізовано');
+        return;
+    }
+    
     console.log('🚀 Algorithmic Anchor завантажується...');
     
     // Налаштовуємо тему
     setupThemeToggle();
     
-    // Відображаємо курси при завантаженні
+    // Спершу завантажуємо свіжі дані з GitHub
+    console.log('📥 Завантаження початкових даних...');
+    await updateDataFromGitHub();
+    
+    // Якщо дані не завантажилися, використовуємо локальні
+    if (!window.siteData || !window.siteData.courses) {
+        console.log('⚠️ Використовуються локальні дані');
+    }
+    
+    // Відображаємо курси
     renderCourses();
     
     // Встановлюємо періодичну перевірку оновлень
-    setInterval(updateDataFromGitHub, 60000); // Кожну хвилину
+    setInterval(updateDataFromGitHub, 30000); // Кожні 30 секунд
     
     // Перевіряємо оновлення при поверненні на сторінку
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
+            console.log('👀 Сторінка стала видимою, перевіряю оновлення...');
             updateDataFromGitHub();
         }
     });
     
-    // Робимо функцію доступною глобально для виклику з консолі
+    // Додаємо кнопку оновлення в інтерфейс
+    addUpdateButton();
+    
+    // Робимо функції доступними глобально
     window.updateDataFromGitHub = updateDataFromGitHub;
+    window.forceUpdateFromGitHub = forceUpdateFromGitHub;
     window.renderCourses = renderCourses;
     
-    console.log('✅ Додаток ініціалізовано. Курсів завантажено:', getCourses().length);
-    console.log('💡 Команда для оновлення вручну: updateDataFromGitHub()');
+    isInitialized = true;
+    console.log('✅ Додаток успішно ініціалізовано');
+    console.log('💡 Команди для консолі: updateDataFromGitHub(), forceUpdateFromGitHub()');
+}
+
+// Додаємо кнопку оновлення на сторінку
+function addUpdateButton() {
+    const pageHeader = document.querySelector('.page-header');
+    if (!pageHeader) return;
+    
+    const updateBtn = document.createElement('button');
+    updateBtn.className = 'btn btn-outline update-btn';
+    updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Оновити';
+    updateBtn.style.cssText = 'margin-left: 15px; position: relative;';
+    
+    updateBtn.addEventListener('click', async () => {
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Оновлення...';
+        
+        await forceUpdateFromGitHub();
+        
+        updateBtn.disabled = false;
+        updateBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Оновити';
+    });
+    
+    pageHeader.appendChild(updateBtn);
 }
 
 // Запускаємо додаток після завантаження DOM
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Додаткові утиліти
-function showMessage(text, type = 'info') {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `alert alert-${type}`;
-    messageDiv.textContent = text;
-    messageDiv.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 15px;
-        background: ${type === 'success' ? '#d4edda' : '#f8d7da'};
-        color: ${type === 'success' ? '#155724' : '#721c24'};
-        border: 1px solid ${type === 'success' ? '#c3e6cb' : '#f5c6cb'};
-        border-radius: 5px;
-        z-index: 1000;
-        animation: fadeIn 0.3s;
-    `;
-    
-    document.body.appendChild(messageDiv);
-    
-    setTimeout(() => {
-        messageDiv.style.animation = 'fadeOut 0.3s';
-        setTimeout(() => {
-            document.body.removeChild(messageDiv);
-        }, 300);
-    }, 3000);
-}
-
-// Додамо CSS для анімацій
+// Стилі для повідомлень
 const style = document.createElement('style');
 style.textContent = `
     @keyframes fadeIn {
@@ -227,6 +278,10 @@ style.textContent = `
     @keyframes fadeOut {
         from { opacity: 1; transform: translateY(0); }
         to { opacity: 0; transform: translateY(-10px); }
+    }
+    
+    .update-btn {
+        transition: all 0.3s;
     }
 `;
 document.head.appendChild(style);
