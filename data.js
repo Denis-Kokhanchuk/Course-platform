@@ -2,10 +2,10 @@
 const siteData = {
   "courses": [
     {
-      "id": "python-junior-senior",
-      "title": "Python з Junior до Senior",
-      "description": "На цьому курсі ти почнеш свій шлях у вивченні Python",
-      "fullDescription": "Цей курс створений для тих, хто хоче пройти повний шлях розвитку Python-розробника — від рівня Junior до впевненого Senior. Програма побудована поетапно та логічно: від фундаментальних основ мови до складних архітектурних рішень і практик, які використовуються в реальних комерційних проєктах.\n\nНа курсі ви:\n\nҐрунтовно вивчите Python (синтаксис, типи даних, ООП, стандартну бібліотеку)\n\nНавчитеся писати чистий, читабельний та масштабований код\n\nРозберетеся з алгоритмами та структурами даних\n\nОсвоїте роботу з базами даних, SQL та ORM\n\nДізнаєтеся, як працюють веб-фреймворки (Django / FastAPI)\n\nНавчитеся тестуванню, логуванню та дебагінгу\n\nОтримаєте розуміння архітектури застосунків і принципів Senior-рівня\n\nПопрацюєте з реальними кейсами та практичними завданнями\n\nКурс підходить:\n\nПочатківцям, які вже знають основи Python\n\nJunior-розробникам, що хочуть зростати до Middle і Senior\n\nТим, хто готується до технічних співбесід та роботи в IT-команді\n\nРезультат курсу — не просто знання, а системне мислення Python-розробника, готового до складних задач і професійного росту.",
+      "id": "p",
+      "title": "Python",
+      "description": "Jdjdj",
+      "fullDescription": "Jdjdj",
       "image": "default-course.jpg",
       "lessonsCount": 0
     }
@@ -41,6 +41,58 @@ function getCourseLessonsCount(courseId) {
 function getSettings() {
     return siteData.settings || {};
 }
+
+// Функція для автоматичного оновлення даних з GitHub
+async function updateDataFromGitHub() {
+    try {
+        console.log('Оновлення даних з GitHub...');
+        const response = await fetch(
+            'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?t=' + Date.now()
+        );
+        const text = await response.text();
+        
+        // Знаходимо siteData в тексті
+        const match = text.match(/const siteData = (\{.*?\});/s);
+        if (match) {
+            try {
+                const newData = JSON.parse(match[1]);
+                window.siteData = newData;
+                
+                console.log('✅ Дані оновлено з GitHub!');
+                
+                // Оновлюємо UI
+                if (typeof window.renderCourses === 'function') {
+                    window.renderCourses();
+                }
+                
+                // Повідомляємо користувача
+                if (window.showNotification) {
+                    window.showNotification('Дані успішно оновлено!', 'success');
+                }
+                
+                return true;
+            } catch (parseError) {
+                console.error('Помилка парсингу:', parseError);
+                return false;
+            }
+        }
+        return false;
+    } catch (error) {
+        console.error('Помилка завантаження:', error);
+        return false;
+    }
+}
+
+// Автоматичне оновлення при завантаженні сторінки
+document.addEventListener('DOMContentLoaded', function() {
+    // Оновлюємо кожні 5 хвилин
+    setInterval(updateDataFromGitHub, 5 * 60 * 1000);
+    
+    // Оновлюємо якщо в URL є параметр update
+    if (new URLSearchParams(window.location.search).has('update')) {
+        updateDataFromGitHub();
+    }
+});
 
 // Функції для роботи з файлами
 function getFile(fileId) {
