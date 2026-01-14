@@ -174,6 +174,28 @@ function showMessage(text, type = 'info') {
     }, 3000);
 }
 
+// Додайте цю функцію в app.js
+function checkForUpdates() {
+    // Перевіряємо чи є нові дані в localStorage
+    const lastUpdate = localStorage.getItem('lastUpdate');
+    const currentData = JSON.stringify(siteData);
+    
+    if (lastUpdate !== currentData) {
+        console.log('Виявлено оновлені дані, перезавантажую...');
+        // Якщо це сторінка курсу або уроку - перезавантажити
+        if (window.location.pathname.includes('course.html') || 
+            window.location.pathname.includes('lesson.html')) {
+            location.reload();
+        }
+    }
+}
+
+// Викликати кожні 10 секунд
+setInterval(checkForUpdates, 10000);
+
+// Або при фокусі на вікні
+window.addEventListener('focus', checkForUpdates);
+
 // Додайте стилі для файлів до style.css
 .lesson-files-section {
     margin-top: 30px;
