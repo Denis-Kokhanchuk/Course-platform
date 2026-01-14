@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Адмін панель | Algorithmic Anchor</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@300;400&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <i class="fas fa-anchor"></i>
+                <span>Algorithmic Anchor Admin</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Перейти на сайт
+                </a>
+                <button class="theme-toggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container admin-container">
+        <div class="admin-header">
+            <h1><i class="fas fa-cogs"></i> Панель управління</h1>
+            <p class="admin-subtitle">Повний контроль над курсами, уроками та налаштуваннями сайту</p>
+        </div>
+
+        <div class="admin-panel">
+            <!-- GitHub Integration -->
+            <div class="github-section">
+                <h3><i class="fab fa-github"></i> GitHub Integration</h3>
+                <div class="github-auth">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="github-token">
+                                <i class="fas fa-key"></i> Personal Access Token
+                            </label>
+                            <input type="password" id="github-token" class="form-input" 
+                                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
+                            <small>Потрібні права: repo, workflow</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="github-repo">
+                                <i class="fas fa-folder"></i> Репозиторій
+                            </label>
+                            <input type="text" id="github-repo" class="form-input" 
+                                   placeholder="username/repo-name" value="yourusername/algorithmic-anchor">
+                        </div>
+                        <div class="form-group">
+                            <label for="github-branch">
+                                <i class="fas fa-code-branch"></i> Гілка
+                            </label>
+                            <input type="text" id="github-branch" class="form-input" value="main">
+                        </div>
+                    </div>
+                    <button id="connect-github" class="btn btn-primary">
+                        <i class="fas fa-plug"></i> Підключити до GitHub
+                    </button>
+                    <div id="github-status" class="status-message hidden"></div>
+                </div>
+            </div>
+
+            <div class="admin-tabs">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="courses">
+                        <i class="fas fa-graduation-cap"></i> Курси
+                    </button>
+                    <button class="tab-btn" data-tab="lessons">
+                        <i class="fas fa-play-circle"></i> Уроки
+                    </button>
+                    <button class="tab-btn" data-tab="preview">
+                        <i class="fas fa-eye"></i> Перегляд
+                    </button>
+                    <button class="tab-btn" data-tab="media">
+                        <i class="fas fa-images"></i> Медіа
+                    </button>
+                </div>
+
+                <div class="tab-content">
+                    <!-- Вкладка Курси -->
+                    <div id="tab-courses" class="tab-pane active">
+                        <div class="pane-header">
+                            <h3><i class="fas fa-graduation-cap"></i> Управління курсами</h3>
+                            <button id="add-course-btn" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Створити курс
+                            </button>
+                        </div>
+                        
+                        <div id="courses-management" class="courses-management">
+                            <!-- Курси будуть завантажені тут -->
+                        </div>
+                    </div>
+
+                    <!-- Вкладка Уроки -->
+                    <div id="tab-lessons" class="tab-pane">
+                        <div class="pane-header">
+                            <h3><i class="fas fa-play-circle"></i> Управління уроками</h3>
+                            <div class="lesson-controls">
+                                <select id="lesson-course-filter" class="form-input">
+                                    <option value="">Всі курси</option>
+                                </select>
+                                <button id="add-lesson-btn" class="btn btn-success">
+                                    <i class="fas fa-plus"></i> Додати урок
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="lessons-management" class="management-list">
+                            <!-- Уроки будуть завантажені тут -->
+                        </div>
+                    </div>
+
+                    <!-- Вкладка Попередній перегляд -->
+                    <div id="tab-preview" class="tab-pane">
+                        <h3><i class="fas fa-eye"></i> Попередній перегляд</h3>
+                        <div class="preview-controls">
+                            <select id="preview-page" class="form-input">
+                                <option value="index">Головна сторінка</option>
+                                <option value="course">Сторінка курсу</option>
+                                <option value="lesson">Сторінка уроку</option>
+                            </select>
+                            <select id="preview-course" class="form-input">
+                                <!-- Завантажиться через JS -->
+                            </select>
+                            <select id="preview-lesson" class="form-input">
+                                <!-- Завантажиться через JS -->
+                            </select>
+                            <button id="refresh-preview" class="btn btn-outline">
+                                <i class="fas fa-sync"></i> Оновити
+                            </button>
+                        </div>
+                        <div id="site-preview" class="site-preview">
+                            <!-- Перегляд буде тут -->
+                        </div>
+                    </div>
+
+                    <!-- Вкладка Медіа -->
+                    <div id="tab-media" class="tab-pane">
+                        <h3><i class="fas fa-images"></i> Медіа-бібліотека</h3>
+                        
+                        <div class="upload-section">
+                            <div class="upload-zone" id="image-upload-zone">
+                                <i class="fas fa-cloud-upload-alt fa-2x"></i>
+                                <h4>Завантажити зображення</h4>
+                                <p>Перетягніть зображення для курсів чи уроків</p>
+                                <input type="file" id="image-upload" accept="image/*" multiple hidden>
+                                <label for="image-upload" class="btn btn-outline">
+                                    <i class="fas fa-folder-open"></i> Вибрати файли
+                                </label>
+                            </div>
+                            
+                            <div class="upload-zone" id="file-upload-zone">
+                                <i class="fas fa-file-upload fa-2x"></i>
+                                <h4>Завантажити файли</h4>
+                                <p>Презентації, код та інші матеріали</p>
+                                <input type="file" id="file-upload" accept=".pdf,.ppt,.pptx,.zip,.txt,.py,.js,.html,.css" multiple hidden>
+                                <label for="file-upload" class="btn btn-outline">
+                                    <i class="fas fa-folder-open"></i> Вибрати файли
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="media-library">
+                            <h4>Завантажені файли</h4>
+                            <div id="media-grid" class="media-grid">
+                                <!-- Медіафайли будуть тут -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Панель дій -->
+            <div class="action-panel">
+                <div class="action-info">
+                    <div class="status-info">
+                        <span id="changes-count">Змін немає</span>
+                        <div class="last-saved" id="last-saved">Не збережено</div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="save-local" class="btn btn-outline" disabled>
+                        <i class="fas fa-save"></i> Зберегти локально
+                    </button>
+                    <button id="push-github" class="btn btn-success" disabled>
+                        <i class="fab fa-github"></i> Push to GitHub
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальні вікна -->
+        <!-- Модальне вікно курсу -->
+        <div id="course-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-graduation-cap"></i> <span id="course-modal-title">Новий курс</span></h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="course-form">
+                        <input type="hidden" id="course-id">
+                        
+                        <div class="form-group">
+                            <label>Назва курсу *</label>
+                            <input type="text" id="course-title" class="form-input" required 
+                                   placeholder="Наприклад: Алгоритми та структури даних">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>ID курсу *</label>
+                            <input type="text" id="course-slug" class="form-input" required 
+                                   placeholder="algorithms-data-structures">
+                            <small>Використовується в URL (латиниця, без пробілів)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Короткий опис *</label>
+                            <textarea id="course-description" class="form-input" rows="3" required 
+                                      placeholder="Короткий опис, що відображається на головній сторінці"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Повний опис</label>
+                            <textarea id="course-full-description" class="form-input" rows="4" 
+                                      placeholder="Детальний опис для сторінки курсу"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Обкладинка курсу</label>
+                            <div class="image-upload">
+                                <div class="image-preview" id="course-image-preview">
+                                    <i class="fas fa-image"></i>
+                                    <span>Натисніть для завантаження зображення</span>
+                                </div>
+                                <input type="file" id="course-image-upload" accept="image/*" hidden>
+                                <div class="image-actions">
+                                    <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('course-image-upload').click()">
+                                        <i class="fas fa-upload"></i> Завантажити
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline" onclick="clearCourseImage()">
+                                        <i class="fas fa-times"></i> Очистити
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary modal-close">Скасувати</button>
+                            <button type="submit" class="btn btn-primary">Зберегти курс</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальне вікно уроку -->
+        <div id="lesson-modal" class="modal hidden">
+            <div class="modal-content large">
+                <div class="modal-header">
+                    <h3><i class="fas fa-play-circle"></i> <span id="lesson-modal-title">Новий урок</span></h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="lesson-form">
+                        <input type="hidden" id="lesson-id">
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Курс *</label>
+                                <select id="lesson-course" class="form-input" required>
+                                    <option value="">Виберіть курс</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Порядковий номер</label>
+                                <input type="number" id="lesson-order" class="form-input" min="1" value="1">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Назва уроку *</label>
+                            <input type="text" id="lesson-title" class="form-input" required 
+                                   placeholder="Наприклад: Вступ до алгоритмів">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>ID відео на YouTube *</label>
+                            <input type="text" id="lesson-video-id" class="form-input" required 
+                                   placeholder="dQw4w9WgXcQ">
+                            <small>Тільки ID відео (після v= в URL)</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Короткий опис *</label>
+                            <textarea id="lesson-description" class="form-input" rows="3" required 
+                                      placeholder="Короткий опис для списку уроків"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Повний опис уроку *</label>
+                            <textarea id="lesson-full-description" class="form-input" rows="6" required 
+                                      placeholder="Детальний опис уроку з можливістю використання HTML"></textarea>
+                            <small>Можна використовувати HTML теги</small>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Прев'ю зображення</label>
+                                <div class="image-upload">
+                                    <div class="image-preview" id="lesson-thumbnail-preview">
+                                        <i class="fas fa-image"></i>
+                                        <span>Прев'ю уроку</span>
+                                    </div>
+                                    <input type="file" id="lesson-thumbnail-upload" accept="image/*" hidden>
+                                    <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('lesson-thumbnail-upload').click()">
+                                        <i class="fas fa-upload"></i> Завантажити
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Презентація</label>
+                                <div class="file-upload">
+                                    <div class="file-preview" id="presentation-preview">
+                                        <i class="fas fa-file-powerpoint"></i>
+                                        <span>Презентація не завантажена</span>
+                                    </div>
+                                    <input type="file" id="presentation-upload" accept=".pdf,.ppt,.pptx" hidden>
+                                    <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('presentation-upload').click()">
+                                        <i class="fas fa-upload"></i> Завантажити
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Код уроку</label>
+                            <div class="file-upload">
+                                <div class="file-preview" id="code-preview">
+                                    <i class="fas fa-code"></i>
+                                    <span>Файл коду не завантажений</span>
+                                </div>
+                                <input type="file" id="code-upload" accept=".py,.js,.txt,.zip" hidden>
+                                <button type="button" class="btn btn-sm btn-outline" onclick="document.getElementById('code-upload').click()">
+                                    <i class="fas fa-upload"></i> Завантажити
+                                </button>
+                            </div>
+                            <small>Або введіть код безпосередньо:</small>
+                            <textarea id="lesson-code-text" class="form-input code-editor" rows="8" 
+                                      placeholder="// Ваш код тут..."></textarea>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary modal-close">Скасувати</button>
+                            <button type="submit" class="btn btn-primary">Зберегти урок</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальне вікно підтвердження -->
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-content small">
+                <div class="modal-header">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Підтвердження</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="confirm-message">Ви впевнені?</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirm-cancel" class="btn btn-secondary">Скасувати</button>
+                    <button id="confirm-ok" class="btn btn-danger">Підтвердити</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модальне вікно завантаження -->
+        <div id="loading-modal" class="modal hidden">
+            <div class="modal-content small">
+                <div class="modal-body">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p id="loading-message">Завантаження...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- JavaScript файли -->
+    <script src="data.js"></script>
+    <script src="github.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
