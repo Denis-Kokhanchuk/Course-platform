@@ -2,10 +2,10 @@
 const siteData = {
   "courses": [
     {
-      "id": "python-junior-senior",
-      "title": "eeed",
-      "description": "eee",
-      "fullDescription": "eee",
+      "id": "e",
+      "title": "eeee",
+      "description": "eeee",
+      "fullDescription": "eeee",
       "image": "default-course.jpg",
       "lessonsCount": 0
     }
