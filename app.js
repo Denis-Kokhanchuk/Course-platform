@@ -1,153 +1,195 @@
-// Додайте цей код до функції loadLessonPage() в app.js
-function loadLessonPage() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const lessonId = urlParams.get('id');
-    const isPreview = urlParams.has('preview');
+// Algorithmic Anchor - Основний JavaScript файл
+let currentPage = 'home';
+
+// Функція для відображення курсів
+function renderCourses() {
+    const coursesGrid = document.getElementById('courses-grid');
+    const courses = getCourses();
     
-    if (!lessonId) {
-        window.location.href = 'index.html';
+    if (!coursesGrid) {
+        console.error('Не знайдено елемент #courses-grid');
         return;
     }
     
-    const lesson = getLesson(lessonId);
-    
-    if (!lesson) {
-        window.location.href = 'index.html';
-        return;
-    }
-    
-    const course = getCourse(lesson.courseId);
-    
-    // ... (існуючий код для breadcrumb, header, video) ...
-    
-    // Додаємо секцію для завантаження файлів після опису уроку
-    const description = document.getElementById('lesson-full-description');
-    if (description) {
-        let descriptionHTML = lesson.fullDescription || lesson.description || '';
-        
-        // Додаємо секцію з файлами
-        descriptionHTML += `
-            <div class="lesson-files-section">
-                <h3><i class="fas fa-paperclip"></i> Матеріали уроку</h3>
-                <div class="files-grid">
-        `;
-        
-        // Презентація
-        if (lesson.presentation && lesson.presentation.startsWith('file:')) {
-            const fileId = lesson.presentation.replace('file:', '');
-            const file = getFile(fileId);
-            if (file) {
-                descriptionHTML += `
-                    <div class="file-card">
-                        <div class="file-icon">
-                            <i class="fas fa-file-powerpoint"></i>
-                        </div>
-                        <div class="file-info">
-                            <h4>Презентація</h4>
-                            <p class="file-name">${file.name}</p>
-                            <p class="file-size">${formatFileSize(file.size)}</p>
-                        </div>
-                        <button class="btn btn-outline download-btn" onclick="downloadLessonFile('${fileId}', '${file.name.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-download"></i> Завантажити
-                        </button>
-                    </div>
-                `;
-            }
-        }
-        
-        // Файл коду
-        if (lesson.codeFile && lesson.codeFile.startsWith('file:')) {
-            const fileId = lesson.codeFile.replace('file:', '');
-            const file = getFile(fileId);
-            if (file) {
-                descriptionHTML += `
-                    <div class="file-card">
-                        <div class="file-icon">
-                            <i class="fas fa-code"></i>
-                        </div>
-                        <div class="file-info">
-                            <h4>Файл коду</h4>
-                            <p class="file-name">${file.name}</p>
-                            <p class="file-size">${formatFileSize(file.size)}</p>
-                        </div>
-                        <button class="btn btn-outline download-btn" onclick="downloadLessonFile('${fileId}', '${file.name.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-download"></i> Завантажити
-                        </button>
-                    </div>
-                `;
-            }
-        }
-        
-        // Код у текстовому полі
-        if (lesson.code && lesson.code.trim()) {
-            descriptionHTML += `
-                <div class="file-card">
-                    <div class="file-icon">
-                        <i class="fas fa-code"></i>
-                    </div>
-                    <div class="file-info">
-                        <h4>Код уроку</h4>
-                        <p class="file-name">Код з поля введення</p>
-                        <p class="file-size">${lesson.code.length} символів</p>
-                    </div>
-                    <button class="btn btn-outline download-btn" onclick="downloadTextFile('lesson-code-${lessonId}.txt', \`${lesson.code.replace(/`/g, '\\`')}\`)">
-                        <i class="fas fa-download"></i> Завантажити
-                    </button>
-                </div>
-            `;
-        }
-        
-        descriptionHTML += `
-                </div>
+    if (!courses || courses.length === 0) {
+        coursesGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-graduation-cap fa-3x"></i>
+                <h3>Курси відсутні</h3>
+                <p>Наразі немає доступних курсів</p>
             </div>
         `;
-        
-        description.innerHTML = descriptionHTML;
+        updateStats();
+        return;
     }
     
-    // ... (решта коду) ...
-}
-
-// Додайте ці функції до app.js
-function downloadLessonFile(fileId, fileName) {
-    if (downloadFile(fileId, fileName)) {
-        showMessage('Файл завантажується...', 'success');
-    } else {
-        showMessage('Не вдалося завантажити файл', 'error');
-    }
-}
-
-function downloadTextFile(fileName, content) {
-    try {
-        const blob = new Blob([content], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+    let html = '';
+    courses.forEach(course => {
+        if (!course || !course.id) return;
         
-        showMessage('Файл завантажується...', 'success');
-        return true;
+        const lessonsCount = getCourseLessonsCount(course.id);
+        const imageUrl = course.image && course.image.startsWith('file:') 
+            ? getImageUrl(course.image.replace('file:', ''))
+            : (course.image || 'default-course.jpg');
+        
+        html += `
+            <a href="course.html?id=${course.id}" class="course-card">
+                <div class="course-image">
+                    <img src="${imageUrl}" alt="${course.title || 'Курс'}" onerror="this.src='default-course.jpg'">
+                    <div class="course-overlay">
+                        <span class="course-lessons"><i class="fas fa-play-circle"></i> ${lessonsCount} уроків</span>
+                    </div>
+                </div>
+                <div class="course-info">
+                    <h3>${course.title || 'Без назви'}</h3>
+                    <p class="course-description">${course.description || ''}</p>
+                    <div class="course-meta">
+                        <span class="course-id">ID: ${course.id}</span>
+                        <button class="btn btn-outline course-btn">Перейти до курсу</button>
+                    </div>
+                </div>
+            </a>
+        `;
+    });
+    
+    coursesGrid.innerHTML = html;
+    updateStats();
+}
+
+// Оновлення статистики
+function updateStats() {
+    const courses = getCourses();
+    let totalVideos = 0;
+    let totalFiles = 0;
+    
+    courses.forEach(course => {
+        const lessons = getLessons(course.id);
+        totalVideos += lessons.length;
+        totalFiles += lessons.filter(l => l.presentation || l.codeFile || l.code).length;
+    });
+    
+    const totalVideosEl = document.getElementById('total-videos');
+    const totalFilesEl = document.getElementById('total-files');
+    
+    if (totalVideosEl) totalVideosEl.textContent = totalVideos;
+    if (totalFilesEl) totalFilesEl.textContent = totalFiles;
+}
+
+// Функція для автоматичного оновлення даних з GitHub
+async function updateDataFromGitHub() {
+    try {
+        console.log('🔄 Перевірка оновлень на GitHub...');
+        
+        const response = await fetch(
+            'https://raw.githubusercontent.com/Denis-Kokhanchuk/Course-platform/main/data.js?t=' + Date.now()
+        );
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const text = await response.text();
+        
+        // Знаходимо siteData в тексті
+        const match = text.match(/const siteData = (\{[\s\S]*?\});/);
+        if (match) {
+            try {
+                const newData = JSON.parse(match[1]);
+                
+                // Оновлюємо глобальні дані
+                window.siteData = newData;
+                
+                console.log('✅ Дані оновлено з GitHub! Знайдено курсів:', newData.courses?.length || 0);
+                
+                // Автоматично перемальовуємо курси
+                renderCourses();
+                
+                return true;
+            } catch (parseError) {
+                console.error('❌ Помилка парсингу даних:', parseError);
+                return false;
+            }
+        } else {
+            console.error('❌ Не вдалося знайти siteData у файлі');
+            return false;
+        }
     } catch (error) {
-        console.error('Помилка завантаження текстового файлу:', error);
-        showMessage('Не вдалося завантажити файл', 'error');
+        console.error('❌ Помилка завантаження з GitHub:', error);
         return false;
     }
 }
 
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+// Перемикач теми
+function setupThemeToggle() {
+    const themeToggle = document.querySelector('.theme-toggle');
+    const body = document.body;
+    
+    if (!themeToggle) return;
+    
+    // Перевіряємо збережену тему
+    const savedTheme = localStorage.getItem('theme');
+    const isDark = savedTheme === 'dark-theme' || (!savedTheme && body.classList.contains('dark-theme'));
+    
+    if (isDark) {
+        body.classList.add('dark-theme');
+    } else {
+        body.classList.remove('dark-theme');
+    }
+    
+    // Оновлюємо іконку
+    const icon = themeToggle.querySelector('i');
+    if (icon) {
+        icon.className = isDark ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    
+    themeToggle.addEventListener('click', () => {
+        const isDarkNow = body.classList.contains('dark-theme');
+        
+        if (isDarkNow) {
+            body.classList.remove('dark-theme');
+            localStorage.setItem('theme', 'light-theme');
+            if (icon) icon.className = 'fas fa-moon';
+        } else {
+            body.classList.add('dark-theme');
+            localStorage.setItem('theme', 'dark-theme');
+            if (icon) icon.className = 'fas fa-sun';
+        }
+    });
 }
 
+// Основна функція ініціалізації
+function initApp() {
+    console.log('🚀 Algorithmic Anchor завантажується...');
+    
+    // Налаштовуємо тему
+    setupThemeToggle();
+    
+    // Відображаємо курси при завантаженні
+    renderCourses();
+    
+    // Встановлюємо періодичну перевірку оновлень
+    setInterval(updateDataFromGitHub, 60000); // Кожну хвилину
+    
+    // Перевіряємо оновлення при поверненні на сторінку
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            updateDataFromGitHub();
+        }
+    });
+    
+    // Робимо функцію доступною глобально для виклику з консолі
+    window.updateDataFromGitHub = updateDataFromGitHub;
+    window.renderCourses = renderCourses;
+    
+    console.log('✅ Додаток ініціалізовано. Курсів завантажено:', getCourses().length);
+    console.log('💡 Команда для оновлення вручну: updateDataFromGitHub()');
+}
+
+// Запускаємо додаток після завантаження DOM
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Додаткові утиліти
 function showMessage(text, type = 'info') {
-    // Проста функція для показу повідомлень
     const messageDiv = document.createElement('div');
     messageDiv.className = `alert alert-${type}`;
     messageDiv.textContent = text;
@@ -174,88 +216,17 @@ function showMessage(text, type = 'info') {
     }, 3000);
 }
 
-// Додайте цю функцію в app.js
-function checkForUpdates() {
-    // Перевіряємо чи є нові дані в localStorage
-    const lastUpdate = localStorage.getItem('lastUpdate');
-    const currentData = JSON.stringify(siteData);
-    
-    if (lastUpdate !== currentData) {
-        console.log('Виявлено оновлені дані, перезавантажую...');
-        // Якщо це сторінка курсу або уроку - перезавантажити
-        if (window.location.pathname.includes('course.html') || 
-            window.location.pathname.includes('lesson.html')) {
-            location.reload();
-        }
+// Додамо CSS для анімацій
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
-}
-
-// Викликати кожні 10 секунд
-setInterval(checkForUpdates, 10000);
-
-// Або при фокусі на вікні
-window.addEventListener('focus', checkForUpdates);
-
-// Додайте стилі для файлів до style.css
-.lesson-files-section {
-    margin-top: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 10px;
-}
-
-.files-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
-    margin-top: 15px;
-}
-
-.file-card {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-    transition: transform 0.2s;
-}
-
-.file-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.file-icon {
-    margin-right: 15px;
-}
-
-.file-icon i {
-    font-size: 24px;
-    color: #007bff;
-}
-
-.file-info {
-    flex: 1;
-}
-
-.file-info h4 {
-    margin: 0 0 5px 0;
-    color: #333;
-}
-
-.file-name {
-    margin: 0;
-    color: #666;
-    font-size: 14px;
-}
-
-.file-size {
-    margin: 0;
-    color: #999;
-    font-size: 12px;
-}
-
-.download-btn {
-    white-space: nowrap;
-}
+    
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+`;
+document.head.appendChild(style);
