@@ -1,6 +1,30 @@
-
-
-
+// data.js
+const siteData = {
+    courses: [
+        {
+            id: "algorithms-basics",
+            title: "Основи алгоритмів",
+            description: "Введення в алгоритми та структури даних",
+            image: "default-course.jpg",
+            fullDescription: "Цей курс охоплює основні алгоритми та структури даних."
+        }
+    ],
+    lessons: [
+        {
+            id: "lesson-1",
+            courseId: "algorithms-basics",
+            title: "Введення в алгоритми",
+            videoId: "dQw4w9WgXcQ",
+            description: "Що таке алгоритми та чому вони важливі",
+            order: 1,
+            fullDescription: "<p>Алгоритм - це набір інструкцій для вирішення задачі.</p>"
+        }
+    ],
+    settings: {
+        siteName: "Algorithmic Anchor",
+        siteDescription: "Навчальна платформа з алгоритмів та програмування"
+    }
+};
 
 // Функції для отримання даних
 function getCourses() {
@@ -49,8 +73,6 @@ function importData(jsonData) {
         return false;
     }
 }
-<<<<<<< HEAD
-=======
 
 // Функції для роботи з файлами
 function getFile(fileId) {
@@ -117,4 +139,3 @@ function getImageUrl(fileId) {
 function saveFile(file, type) {
     return `uploads/${type}/${Date.now()}_${file.name}`;
 }
->>>>>>> 667a075 (Оновлення адмін-панелі: виправлено видалення уроків та завантаження файлів)
