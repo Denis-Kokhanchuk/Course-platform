@@ -493,24 +493,16 @@ class AdminPanel {
             () => {
                 console.log('Підтверджено видалення уроку:', lessonId);
                 
-<<<<<<< HEAD
                 // Видаляємо урок
                 this.data.lessons = this.data.lessons.filter(l => l.id !== lessonId);
                 
                 // Позначаємо зміни
-=======
-                this.data.lessons = this.data.lessons.filter(l => l.id !== lessonId);
-                
->>>>>>> 667a075 (Оновлення адмін-панелі: виправлено видалення уроків та завантаження файлів)
                 this.unsavedChanges = true;
                 this.updateChangesStatus();
                 document.getElementById('save-local').disabled = false;
                 document.getElementById('push-github').disabled = !this.github;
                 
-<<<<<<< HEAD
                 // Оновлюємо інтерфейс
-=======
->>>>>>> 667a075 (Оновлення адмін-панелі: виправлено видалення уроків та завантаження файлів)
                 this.renderLessons();
                 this.updateSelectors();
                 this.updatePreviewLessons();
@@ -951,10 +943,7 @@ class AdminPanel {
     }
     
     updateStats() {
-<<<<<<< HEAD
         // Якщо у вас є елементи для статистики
-=======
->>>>>>> 667a075 (Оновлення адмін-панелі: виправлено видалення уроків та завантаження файлів)
         const coursesCount = document.getElementById('courses-count');
         const lessonsCount = document.getElementById('lessons-count');
         
