@@ -1,49 +1,27 @@
 // Адмін-панель для Algorithmic Anchor
 class AdminPanel {
     constructor() {
-        // Зберігаємо посилання на this
-        const self = this;
-        
-        // Ініціалізуємо властивості
         this.data = { ...siteData };
         this.unsavedChanges = false;
         this.github = null;
         this.mediaFiles = [];
         
-        // Чекаємо трохи, щоб DOM точно завантажився
-        setTimeout(() => {
-            try {
-                this.init();
-            } catch (error) {
-                console.error('Помилка ініціалізації адмін-панелі:', error);
-                this.showMessage('Помилка завантаження адмін-панелі: ' + error.message, 'error');
-            }
-        }, 100);
+        this.init();
     }
     
     init() {
-        console.log('AdminPanel init запущено');
-        
-        // Спочатку завантажуємо дані
         this.loadData();
-        
-        // Потім рендеримо
         this.renderCourses();
         this.renderLessons();
         this.renderMediaLibrary();
         this.updateSelectors();
         this.checkGitHubStatus();
-        
-        // І тільки потім прив'язуємо події
         this.bindEvents();
     }
     
     bindEvents() {
-        console.log('Прив\'язка подій...');
-        
         // Навігація по вкладках
         document.querySelectorAll('.tab-btn').forEach(btn => {
-            console.log('Знайдено кнопку вкладки:', btn.dataset.tab);
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.switchTab(e.target.dataset.tab || e.target.closest('.tab-btn').dataset.tab);
@@ -51,177 +29,92 @@ class AdminPanel {
         });
         
         // Кнопки додавання
-        const addCourseBtn = document.getElementById('add-course-btn');
-        if (addCourseBtn) {
-            console.log('Кнопка додавання курсу знайдена');
-            addCourseBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.openCourseModal();
-            });
-        }
+        document.getElementById('add-course-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.openCourseModal();
+        });
         
-        const addLessonBtn = document.getElementById('add-lesson-btn');
-        if (addLessonBtn) {
-            console.log('Кнопка додавання уроку знайдена');
-            addLessonBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.openLessonModal();
-            });
-        }
+        document.getElementById('add-lesson-btn')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.openLessonModal();
+        });
         
         // GitHub
-        const connectGitHubBtn = document.getElementById('connect-github');
-        if (connectGitHubBtn) {
-            console.log('Кнопка GitHub знайдена');
-            connectGitHubBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.connectGitHub();
-            });
-        }
+        document.getElementById('connect-github')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.connectGitHub();
+        });
         
         // Збереження
-        const saveLocalBtn = document.getElementById('save-local');
-        if (saveLocalBtn) {
-            saveLocalBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.saveLocal();
-            });
-        }
+        document.getElementById('save-local')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.saveLocal();
+        });
         
-        const pushGitHubBtn = document.getElementById('push-github');
-        if (pushGitHubBtn) {
-            pushGitHubBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.pushToGitHub();
-            });
-        }
+        document.getElementById('push-github')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            this.pushToGitHub();
+        });
         
         // Форми
-        const courseForm = document.getElementById('course-form');
-        if (courseForm) {
-            courseForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveCourse(e);
-            });
-        }
-        
-        const lessonForm = document.getElementById('lesson-form');
-        if (lessonForm) {
-            lessonForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.saveLesson(e);
-            });
-        }
+        document.getElementById('course-form')?.addEventListener('submit', (e) => this.saveCourse(e));
+        document.getElementById('lesson-form')?.addEventListener('submit', (e) => this.saveLesson(e));
         
         // Фільтри
-        const lessonFilter = document.getElementById('lesson-course-filter');
-        if (lessonFilter) {
-            lessonFilter.addEventListener('change', () => this.renderLessons());
-        }
+        document.getElementById('lesson-course-filter')?.addEventListener('change', () => this.renderLessons());
         
         // Попередній перегляд
-        const refreshPreview = document.getElementById('refresh-preview');
-        if (refreshPreview) {
-            refreshPreview.addEventListener('click', () => this.updatePreview());
-        }
-        
-        const previewPage = document.getElementById('preview-page');
-        if (previewPage) {
-            previewPage.addEventListener('change', () => this.updatePreview());
-        }
-        
-        const previewCourse = document.getElementById('preview-course');
-        if (previewCourse) {
-            previewCourse.addEventListener('change', () => this.updatePreviewLessons());
-        }
-        
-        const previewLesson = document.getElementById('preview-lesson');
-        if (previewLesson) {
-            previewLesson.addEventListener('change', () => this.updatePreview());
-        }
+        document.getElementById('refresh-preview')?.addEventListener('click', () => this.updatePreview());
+        document.getElementById('preview-page')?.addEventListener('change', () => this.updatePreview());
+        document.getElementById('preview-course')?.addEventListener('change', () => this.updatePreviewLessons());
+        document.getElementById('preview-lesson')?.addEventListener('change', () => this.updatePreview());
         
         // Модальні вікна
         document.querySelectorAll('.modal-close').forEach(btn => {
             btn.addEventListener('click', () => this.closeModals());
         });
         
-        const confirmCancel = document.getElementById('confirm-cancel');
-        if (confirmCancel) {
-            confirmCancel.addEventListener('click', () => this.closeModals());
-        }
+        document.getElementById('confirm-cancel')?.addEventListener('click', () => this.closeModals());
         
         // Тема
-        const themeToggle = document.querySelector('.theme-toggle');
-        if (themeToggle) {
-            themeToggle.addEventListener('click', () => this.toggleTheme());
-        }
+        document.querySelector('.theme-toggle')?.addEventListener('click', () => this.toggleTheme());
         
         // Завантаження файлів
         this.setupFileUploads();
         
-        // Делегування подій для динамічних елементів
+        // Делегування подій
         document.addEventListener('click', (e) => {
-            // Обробка кліків на кнопки редагування курсу
             if (e.target.closest('.edit-btn') && e.target.closest('.course-card-admin')) {
-                const courseCard = e.target.closest('.course-card-admin');
-                if (courseCard && courseCard.dataset.id) {
-                    console.log('Редагування курсу:', courseCard.dataset.id);
-                    this.editCourse(courseCard.dataset.id);
-                }
+                const courseId = e.target.closest('.course-card-admin').dataset.id;
+                if (courseId) this.editCourse(courseId);
             }
             
-            // Обробка кліків на кнопки видалення курсу
             if (e.target.closest('.delete-btn') && e.target.closest('.course-card-admin')) {
-                const courseCard = e.target.closest('.course-card-admin');
-                if (courseCard && courseCard.dataset.id) {
-                    console.log('Видалення курсу:', courseCard.dataset.id);
-                    this.deleteCourse(courseCard.dataset.id);
-                }
+                const courseId = e.target.closest('.course-card-admin').dataset.id;
+                if (courseId) this.deleteCourse(courseId);
             }
             
-            // Обробка кліків на кнопки редагування уроку
             if (e.target.closest('.edit-btn') && e.target.closest('.management-item[data-lesson-id]')) {
-                const lessonItem = e.target.closest('.management-item[data-lesson-id]');
-                if (lessonItem && lessonItem.dataset.lessonId) {
-                    console.log('Редагування уроку:', lessonItem.dataset.lessonId);
-                    this.editLesson(lessonItem.dataset.lessonId);
-                }
+                const lessonId = e.target.closest('.management-item').dataset.lessonId;
+                if (lessonId) this.editLesson(lessonId);
             }
             
-            // Обробка кліків на кнопки видалення уроку
             if (e.target.closest('.delete-btn') && e.target.closest('.management-item[data-lesson-id]')) {
-                const lessonItem = e.target.closest('.management-item[data-lesson-id]');
-                if (lessonItem && lessonItem.dataset.lessonId) {
-                    console.log('Видалення уроку:', lessonItem.dataset.lessonId);
-                    this.deleteLesson(lessonItem.dataset.lessonId);
-                }
+                const lessonId = e.target.closest('.management-item').dataset.lessonId;
+                if (lessonId) this.deleteLesson(lessonId);
             }
         });
     }
     
     // Завантаження даних
     loadData() {
-        console.log('Завантаження даних...');
-        
-        // Перевіряємо чи завантажені siteData
-        if (!window.siteData) {
-            console.error('siteData не знайдено!');
-            this.data = { courses: [], lessons: [] };
-            return;
-        }
-        
         try {
             const saved = localStorage.getItem('adminData');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (parsed && (parsed.courses || parsed.lessons)) {
+                if (parsed && parsed.courses) {
                     this.data = parsed;
-                    console.log('Дані завантажено з localStorage:', this.data);
-                } else {
-                    this.data = { ...siteData };
                 }
-            } else {
-                this.data = { ...siteData };
             }
         } catch (e) {
             console.error('Помилка завантаження даних:', e);
@@ -243,13 +136,9 @@ class AdminPanel {
     
     // GitHub
     async connectGitHub() {
-        console.log('Підключення до GitHub...');
-        
-        const token = document.getElementById('github-token')?.value.trim();
-        const repo = document.getElementById('github-repo')?.value.trim();
-        const branch = document.getElementById('github-branch')?.value.trim() || 'main';
-        
-        console.log('GitHub дані:', { token, repo, branch });
+        const token = document.getElementById('github-token').value.trim();
+        const repo = document.getElementById('github-repo').value.trim();
+        const branch = document.getElementById('github-branch').value.trim() || 'main';
         
         if (!token || !repo) {
             this.showMessage('Введіть токен та репозиторій', 'error');
@@ -292,15 +181,183 @@ class AdminPanel {
         document.getElementById('push-github').disabled = !this.github || !this.unsavedChanges;
     }
     
-    // Курси
-    renderCourses() {
-        const container = document.getElementById('courses-management');
-        if (!container) {
-            console.error('Контейнер курсів не знайдений!');
+    async pushToGitHub() {
+        if (!this.github) {
+            this.showMessage('Спочатку підключіться до GitHub', 'error');
             return;
         }
         
-        console.log('Рендеринг курсів, кількість:', this.data.courses?.length || 0);
+        if (!this.unsavedChanges) {
+            this.showMessage('Немає змін для публікації', 'info');
+            return;
+        }
+        
+        this.showConfirm(
+            'Опублікувати зміни на GitHub?',
+            'Всі зміни будуть завантажені на GitHub.',
+            async () => {
+                this.showLoading('Публікація на GitHub...');
+                
+                try {
+                    // Створюємо вміст для data.js
+                    const dataContent = this.generateDataJSContent();
+                    
+                    // Публікуємо data.js
+                    const result = await this.github.updateFile(
+                        'data.js',
+                        dataContent,
+                        'Оновлення даних курсу через адмін-панель'
+                    );
+                    
+                    if (result.success) {
+                        // Тепер публікуємо media файли
+                        await this.uploadMediaFilesToGitHub();
+                        
+                        this.unsavedChanges = false;
+                        this.updateChangesStatus();
+                        
+                        this.showMessage('Зміни опубліковано на GitHub!', 'success');
+                    } else {
+                        this.showMessage('Помилка публікації: ' + result.error, 'error');
+                    }
+                } catch (error) {
+                    this.showMessage('Помилка: ' + error.message, 'error');
+                } finally {
+                    this.hideLoading();
+                }
+            }
+        );
+    }
+    
+    generateDataJSContent() {
+        // Створюємо чистий об'єкт без зайвих методів
+        const cleanData = {
+            courses: JSON.parse(JSON.stringify(this.data.courses || [])),
+            lessons: JSON.parse(JSON.stringify(this.data.lessons || [])),
+            settings: {
+                siteName: "Algorithmic Anchor",
+                theme: "dark"
+            }
+        };
+        
+        // Додаємо стандартні функції
+        return `// Базова структура даних
+const siteData = ${JSON.stringify(cleanData, null, 2)};
+
+// Функції для отримання даних
+function getCourses() {
+    return siteData.courses || [];
+}
+
+function getCourse(courseId) {
+    return (siteData.courses || []).find(course => course.id === courseId);
+}
+
+function getLessons(courseId) {
+    return (siteData.lessons || []).filter(lesson => lesson.courseId === courseId);
+}
+
+function getLesson(lessonId) {
+    return (siteData.lessons || []).find(lesson => lesson.id === lessonId);
+}
+
+function getCourseLessonsCount(courseId) {
+    return getLessons(courseId).length;
+}
+
+function getSettings() {
+    return siteData.settings || {};
+}
+
+// Функції для роботи з файлами
+function getFile(fileId) {
+    try {
+        const mediaFiles = JSON.parse(localStorage.getItem('mediaFiles')) || [];
+        return mediaFiles.find(f => f.id === fileId);
+    } catch (error) {
+        console.error('Помилка завантаження файлу:', error);
+        return null;
+    }
+}
+
+function getFileUrl(fileId) {
+    const file = getFile(fileId);
+    return file?.content || null;
+}
+
+function downloadFile(fileId, fileName = null) {
+    const file = getFile(fileId);
+    if (!file || !file.content) return false;
+    
+    try {
+        let content = file.content;
+        if (content.includes('base64,')) {
+            content = content.split('base64,')[1];
+        }
+        
+        const byteCharacters = atob(content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: file.type });
+        
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName || file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        return true;
+    } catch (error) {
+        console.error('Помилка завантаження файлу:', error);
+        return false;
+    }
+}
+
+function getImageUrl(fileId) {
+    const file = getFile(fileId);
+    if (file && file.type.startsWith('image/') && file.content) {
+        return file.content;
+    }
+    return 'default-course.jpg';
+}`;
+    }
+    
+    async uploadMediaFilesToGitHub() {
+        if (!this.github || this.mediaFiles.length === 0) return;
+        
+        try {
+            // Створюємо JSON файл з медіа файлами
+            const mediaData = this.mediaFiles.map(file => ({
+                id: file.id,
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                category: file.category,
+                uploaded: file.uploaded
+                // Не включаємо content, бо воно дуже велике для GitHub
+            }));
+            
+            await this.github.updateFile(
+                'media-files.json',
+                JSON.stringify(mediaData, null, 2),
+                'Оновлення медіа-файлів'
+            );
+            
+        } catch (error) {
+            console.error('Помилка публікації медіа-файлів:', error);
+        }
+    }
+    
+    // Курси
+    renderCourses() {
+        const container = document.getElementById('courses-management');
+        if (!container) return;
         
         if (!this.data.courses || this.data.courses.length === 0) {
             container.innerHTML = `
@@ -313,18 +370,7 @@ class AdminPanel {
                     </button>
                 </div>
             `;
-            
-            // Додаємо обробник для кнопки
-            setTimeout(() => {
-                const createBtn = document.getElementById('create-first-course');
-                if (createBtn) {
-                    createBtn.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        this.openCourseModal();
-                    });
-                }
-            }, 100);
-            
+            document.getElementById('create-first-course')?.addEventListener('click', () => this.openCourseModal());
             return;
         }
         
@@ -340,25 +386,17 @@ class AdminPanel {
             html += `
                 <div class="course-card-admin" data-id="${course.id}">
                     <div class="course-image-admin">
-                        <img src="${imageUrl}" 
-                             alt="${course.title || 'Курс'}"
-                             onerror="this.src='default-course.jpg'">
+                        <img src="${imageUrl}" alt="${course.title || 'Курс'}" onerror="this.src='default-course.jpg'">
                         <div class="course-actions">
-                            <button class="action-btn edit-btn">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="action-btn delete-btn">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <button class="action-btn edit-btn"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                     <div class="course-info-admin">
                         <h4>${course.title || 'Без назви'}</h4>
                         <p class="course-desc">${(course.description || '').substring(0, 80)}...</p>
                         <div class="course-meta">
-                            <span class="lessons-count">
-                                <i class="fas fa-play-circle"></i> ${lessonsCount} уроків
-                            </span>
+                            <span class="lessons-count"><i class="fas fa-play-circle"></i> ${lessonsCount} уроків</span>
                             <span class="course-id">ID: ${course.id}</span>
                         </div>
                     </div>
@@ -372,28 +410,13 @@ class AdminPanel {
     }
     
     openCourseModal(courseId = null) {
-        console.log('Відкриття модального вікна курсу, ID:', courseId);
-        
         const modal = document.getElementById('course-modal');
-        if (!modal) {
-            console.error('Модальне вікно курсу не знайдено!');
-            return;
-        }
-        
         const title = document.getElementById('course-modal-title');
         const form = document.getElementById('course-form');
         
-        if (!title || !form) {
-            console.error('Елементи форми курсу не знайдені!');
-            return;
-        }
-        
         if (courseId) {
             const course = this.data.courses.find(c => c.id === courseId);
-            if (!course) {
-                console.error('Курс не знайдено:', courseId);
-                return;
-            }
+            if (!course) return;
             
             title.textContent = 'Редагувати курс';
             document.getElementById('course-id').value = course.id;
@@ -418,46 +441,37 @@ class AdminPanel {
             form.reset();
             document.getElementById('course-id').value = '';
             
-            // Автогенерація slug з назви
             const titleInput = document.getElementById('course-title');
             const slugInput = document.getElementById('course-slug');
             
-            if (titleInput && slugInput) {
-                titleInput.addEventListener('input', () => {
-                    if (!slugInput.value || slugInput.value === '') {
-                        slugInput.value = this.generateSlug(titleInput.value);
-                    }
-                });
-            }
+            titleInput?.addEventListener('input', () => {
+                if (!slugInput.value || slugInput.value === '') {
+                    slugInput.value = this.generateSlug(titleInput.value);
+                }
+            });
         }
         
         const imageUpload = document.getElementById('course-image-upload');
-        if (imageUpload) {
-            imageUpload.onchange = (e) => this.handleImageUpload(e, 'course-image-preview');
-        }
+        imageUpload.onchange = (e) => this.handleImageUpload(e, 'course-image-preview');
         
         modal.classList.remove('hidden');
     }
     
     async saveCourse(e) {
-        console.log('Збереження курсу...');
-        
-        if (e) e.preventDefault();
+        e.preventDefault();
         
         const courseId = document.getElementById('course-id').value;
-        const title = document.getElementById('course-title')?.value.trim();
-        const slug = document.getElementById('course-slug')?.value.trim();
-        const description = document.getElementById('course-description')?.value.trim();
-        const fullDescription = document.getElementById('course-full-description')?.value.trim();
-        
-        console.log('Дані форми:', { courseId, title, slug, description });
+        const title = document.getElementById('course-title').value.trim();
+        const slug = document.getElementById('course-slug').value.trim();
+        const description = document.getElementById('course-description').value.trim();
+        const fullDescription = document.getElementById('course-full-description').value.trim();
         
         if (!title || !slug || !description) {
             this.showMessage('Заповніть обов\'язкові поля', 'error');
             return;
         }
         
-        const imageFile = document.getElementById('course-image-upload')?.files[0];
+        const imageFile = document.getElementById('course-image-upload').files[0];
         let imageUrl = this.data.courses.find(c => c.id === courseId)?.image || 'default-course.jpg';
         
         if (imageFile) {
@@ -548,9 +562,7 @@ class AdminPanel {
                 <div class="management-item" data-lesson-id="${lesson.id}">
                     <div class="item-info">
                         <div class="lesson-thumbnail">
-                            <img src="${thumbnailUrl}" 
-                                 alt="${lesson.title || 'Урок'}"
-                                 onerror="this.src='default-course.jpg'">
+                            <img src="${thumbnailUrl}" alt="${lesson.title || 'Урок'}" onerror="this.src='default-course.jpg'">
                         </div>
                         <div class="item-details">
                             <h4>${lesson.title || 'Без назви'}</h4>
@@ -562,12 +574,8 @@ class AdminPanel {
                         </div>
                     </div>
                     <div class="item-actions">
-                        <button class="action-btn edit-btn">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="action-btn delete-btn">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <button class="action-btn edit-btn"><i class="fas fa-edit"></i></button>
+                        <button class="action-btn delete-btn"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             `;
@@ -617,10 +625,7 @@ class AdminPanel {
                 const file = this.getFile(fileId);
                 if (file) {
                     const preview = document.getElementById('presentation-preview');
-                    preview.innerHTML = `
-                        <i class="fas fa-file-powerpoint"></i>
-                        <span>${file.name}</span>
-                    `;
+                    preview.innerHTML = `<i class="fas fa-file-powerpoint"></i><span>${file.name}</span>`;
                 }
             }
             
@@ -629,44 +634,24 @@ class AdminPanel {
                 const file = this.getFile(fileId);
                 if (file) {
                     const preview = document.getElementById('code-preview');
-                    preview.innerHTML = `
-                        <i class="fas fa-code"></i>
-                        <span>${file.name}</span>
-                    `;
+                    preview.innerHTML = `<i class="fas fa-code"></i><span>${file.name}</span>`;
                 }
             }
         } else {
             title.textContent = 'Новий урок';
             form.reset();
             document.getElementById('lesson-id').value = '';
-            const selectedCourse = document.getElementById('lesson-course').value;
-            document.getElementById('lesson-order').value = (this.data.lessons?.filter(l => l.courseId === selectedCourse).length || 0) + 1;
-            
-            // Скидаємо прев'ю презентації та коду
-            document.getElementById('presentation-preview').innerHTML = `
-                <i class="fas fa-file-powerpoint"></i>
-                <span>Презентація не завантажена</span>
-            `;
-            document.getElementById('code-preview').innerHTML = `
-                <i class="fas fa-code"></i>
-                <span>Файл коду не завантажений</span>
-            `;
+            document.getElementById('lesson-order').value = (this.data.lessons?.filter(l => l.courseId === document.getElementById('lesson-course').value).length || 0) + 1;
         }
         
         const thumbnailUpload = document.getElementById('lesson-thumbnail-upload');
-        if (thumbnailUpload) {
-            thumbnailUpload.onchange = (e) => this.handleImageUpload(e, 'lesson-thumbnail-preview');
-        }
+        thumbnailUpload.onchange = (e) => this.handleImageUpload(e, 'lesson-thumbnail-preview');
         
         const presentationUpload = document.getElementById('presentation-upload');
-        if (presentationUpload) {
-            presentationUpload.onchange = (e) => this.handleFileUpload(e, 'presentation-preview', 'fa-file-powerpoint');
-        }
+        presentationUpload.onchange = (e) => this.handleFileUpload(e, 'presentation-preview', 'fa-file-powerpoint');
         
         const codeUpload = document.getElementById('code-upload');
-        if (codeUpload) {
-            codeUpload.onchange = (e) => this.handleFileUpload(e, 'code-preview', 'fa-code');
-        }
+        codeUpload.onchange = (e) => this.handleFileUpload(e, 'code-preview', 'fa-code');
         
         modal.classList.remove('hidden');
     }
@@ -752,15 +737,10 @@ class AdminPanel {
             'Видалити урок?',
             'Ця дія не видалить файли з сервера.',
             () => {
-                console.log('Видалення уроку з ID:', lessonId);
-                
                 this.data.lessons = (this.data.lessons || []).filter(l => l.id !== lessonId);
-                
                 this.markChanges();
                 this.renderLessons();
                 this.updateSelectors();
-                
-                console.log('Урок успішно видалено');
                 this.showMessage('Урок видалено', 'success');
             }
         );
@@ -1003,21 +983,6 @@ class AdminPanel {
             () => {
                 this.mediaFiles = this.mediaFiles.filter(f => f.id !== fileId);
                 localStorage.setItem('mediaFiles', JSON.stringify(this.mediaFiles));
-                
-                // Видалити файл з усіх уроків
-                this.data.lessons = this.data.lessons.map(lesson => {
-                    if (lesson.thumbnail && lesson.thumbnail === `file:${fileId}`) {
-                        lesson.thumbnail = null;
-                    }
-                    if (lesson.presentation && lesson.presentation === `file:${fileId}`) {
-                        lesson.presentation = null;
-                    }
-                    if (lesson.codeFile && lesson.codeFile === `file:${fileId}`) {
-                        lesson.codeFile = null;
-                    }
-                    return lesson;
-                });
-                
                 this.markChanges();
                 this.renderMediaLibrary();
                 this.showMessage('Файл видалено', 'success');
@@ -1044,8 +1009,7 @@ class AdminPanel {
         
         const preview = document.getElementById('site-preview');
         preview.innerHTML = `
-            <iframe src="${url}?preview=true" class="preview-iframe" 
-                    sandbox="allow-same-origin allow-scripts"></iframe>
+            <iframe src="${url}?preview=true" class="preview-iframe" sandbox="allow-same-origin allow-scripts"></iframe>
         `;
     }
     
@@ -1064,11 +1028,7 @@ class AdminPanel {
     }
     
     updateSelectors() {
-        const courseSelects = [
-            'lesson-course-filter',
-            'lesson-course',
-            'preview-course'
-        ];
+        const courseSelects = ['lesson-course-filter', 'lesson-course', 'preview-course'];
         
         courseSelects.forEach(selectId => {
             const select = document.getElementById(selectId);
@@ -1104,21 +1064,23 @@ class AdminPanel {
         if (this.unsavedChanges) {
             count.textContent = 'Є незбережені зміни';
             saved.textContent = 'Не збережено';
+            document.getElementById('push-github').disabled = !this.github;
         } else {
             count.textContent = 'Змін немає';
             saved.textContent = 'Збережено';
+            document.getElementById('push-github').disabled = true;
         }
         
         document.getElementById('save-local').disabled = !this.unsavedChanges;
-        document.getElementById('push-github').disabled = !this.github || !this.unsavedChanges;
     }
     
     saveLocal() {
         try {
             localStorage.setItem('adminData', JSON.stringify(this.data));
-            localStorage.setItem('unsavedChanges', 'false');
+            localStorage.setItem('mediaFiles', JSON.stringify(this.mediaFiles));
             
-            Object.assign(siteData, this.data);
+            // Оновлюємо глобальний siteData для швидкого доступу
+            window.siteData = this.data;
             
             this.unsavedChanges = false;
             this.updateChangesStatus();
@@ -1129,48 +1091,8 @@ class AdminPanel {
         }
     }
     
-    async pushToGitHub() {
-        if (!this.github) {
-            this.showMessage('Спочатку підключіться до GitHub', 'error');
-            return;
-        }
-        
-        this.showConfirm(
-            'Опублікувати зміни на GitHub?',
-            'Всі зміни будуть завантажені на GitHub.',
-            async () => {
-                this.showLoading('Публікація на GitHub...');
-                
-                try {
-                    const dataContent = `const siteData = ${JSON.stringify(this.data, null, 2)};\n\n${getDataFunctions}`;
-                    
-                    const result = await this.github.updateFile(
-                        'data.js',
-                        dataContent,
-                        'Оновлення даних курсу через адмін-панель'
-                    );
-                    
-                    if (result.success) {
-                        this.unsavedChanges = false;
-                        this.updateChangesStatus();
-                        
-                        this.showMessage('Зміни опубліковано на GitHub!', 'success');
-                    } else {
-                        this.showMessage('Помилка публікації: ' + result.error, 'error');
-                    }
-                } catch (error) {
-                    this.showMessage('Помилка: ' + error.message, 'error');
-                } finally {
-                    this.hideLoading();
-                }
-            }
-        );
-    }
-    
     // Допоміжні функції
     switchTab(tabId) {
-        console.log('Переключення на вкладку:', tabId);
-        
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tab === tabId);
         });
@@ -1192,51 +1114,37 @@ class AdminPanel {
     
     showConfirm(title, message, callback) {
         const modal = document.getElementById('confirm-modal');
-        if (!modal) {
-            console.error('Модальне вікно підтвердження не знайдено!');
-            return;
-        }
-        
         const confirmMessage = document.getElementById('confirm-message');
-        if (confirmMessage) {
-            confirmMessage.textContent = message;
-        }
         
+        if (!modal || !confirmMessage) return;
+        
+        confirmMessage.textContent = message;
         modal.classList.remove('hidden');
-        
-        const confirmOk = document.getElementById('confirm-ok');
-        const confirmCancel = document.getElementById('confirm-cancel');
         
         const handleConfirm = () => {
             modal.classList.add('hidden');
-            if (confirmOk) confirmOk.removeEventListener('click', handleConfirm);
-            if (confirmCancel) confirmCancel.removeEventListener('click', handleCancel);
+            document.getElementById('confirm-ok').removeEventListener('click', handleConfirm);
+            document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
             callback();
         };
         
         const handleCancel = () => {
             modal.classList.add('hidden');
-            if (confirmOk) confirmOk.removeEventListener('click', handleConfirm);
-            if (confirmCancel) confirmCancel.removeEventListener('click', handleCancel);
+            document.getElementById('confirm-ok').removeEventListener('click', handleConfirm);
+            document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
         };
         
-        if (confirmOk) {
-            confirmOk.addEventListener('click', handleConfirm);
-        }
-        
-        if (confirmCancel) {
-            confirmCancel.addEventListener('click', handleCancel);
-        }
+        document.getElementById('confirm-ok').addEventListener('click', handleConfirm);
+        document.getElementById('confirm-cancel').addEventListener('click', handleCancel);
     }
     
     showLoading(message = 'Завантаження...') {
         const modal = document.getElementById('loading-modal');
-        if (!modal) return;
-        
         const loadingMessage = document.getElementById('loading-message');
-        if (loadingMessage) {
-            loadingMessage.textContent = message;
-        }
+        
+        if (!modal || !loadingMessage) return;
+        
+        loadingMessage.textContent = message;
         modal.classList.remove('hidden');
     }
     
@@ -1248,13 +1156,8 @@ class AdminPanel {
     }
     
     showMessage(text, type = 'info') {
-        console.log('Повідомлення:', text, 'Тип:', type);
-        
         const status = document.getElementById('github-status');
-        if (!status) {
-            console.error('Елемент для повідомлень не знайдено!');
-            return;
-        }
+        if (!status) return;
         
         status.textContent = text;
         status.className = `status-message ${type}`;
@@ -1304,152 +1207,26 @@ class AdminPanel {
     }
 }
 
-// Функції для data.js
-const getDataFunctions = `
-// Функції для отримання даних
-function getCourses() {
-    return siteData.courses || [];
-}
-
-function getCourse(courseId) {
-    return (siteData.courses || []).find(course => course.id === courseId);
-}
-
-function getLessons(courseId) {
-    return (siteData.lessons || []).filter(lesson => lesson.courseId === courseId);
-}
-
-function getLesson(lessonId) {
-    return (siteData.lessons || []).find(lesson => lesson.id === lessonId);
-}
-
-function getCourseLessonsCount(courseId) {
-    return getLessons(courseId).length;
-}
-
-function getSettings() {
-    return siteData.settings || {};
-}
-
-// Функції для роботи з файлами
-function getFile(fileId) {
-    try {
-        const mediaFiles = JSON.parse(localStorage.getItem('mediaFiles')) || [];
-        return mediaFiles.find(f => f.id === fileId);
-    } catch (error) {
-        console.error('Помилка завантаження файлу:', error);
-        return null;
-    }
-}
-
-function getFileUrl(fileId) {
-    const file = getFile(fileId);
-    return file?.content || null;
-}
-
-function downloadFile(fileId, fileName = null) {
-    const file = getFile(fileId);
-    if (!file || !file.content) return false;
-    
-    try {
-        let content = file.content;
-        if (content.includes('base64,')) {
-            content = content.split('base64,')[1];
-        }
-        
-        const byteCharacters = atob(content);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: file.type });
-        
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName || file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        return true;
-    } catch (error) {
-        console.error('Помилка завантаження файлу:', error);
-        return false;
-    }
-}
-
-function getImageUrl(fileId) {
-    const file = getFile(fileId);
-    if (file && file.type.startsWith('image/') && file.content) {
-        return file.content;
-    }
-    return 'default-course.jpg';
-}
-`;
-
 // Ініціалізація
 let admin;
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('DOM завантажений, ініціалізація адмін-панелі...');
-    
     try {
-        // Перевіряємо чи завантажені необхідні глобальні змінні
-        if (typeof GitHubAPI === 'undefined') {
-            console.error('GitHubAPI не завантажено!');
-        }
-        
-        if (typeof siteData === 'undefined') {
-            console.error('siteData не завантажено!');
-        }
-        
         admin = new AdminPanel();
         window.admin = admin;
         
-        // Глобальна функція для очищення зображення курсу
         window.clearCourseImage = () => {
             const preview = document.getElementById('course-image-preview');
-            if (preview) {
-                preview.innerHTML = `
-                    <i class="fas fa-image"></i>
-                    <span>Натисніть для завантаження зображення</span>
-                `;
-                const uploadInput = document.getElementById('course-image-upload');
-                if (uploadInput) {
-                    uploadInput.value = '';
-                }
-            }
+            preview.innerHTML = `
+                <i class="fas fa-image"></i>
+                <span>Натисніть для завантаження зображення</span>
+            `;
+            document.getElementById('course-image-upload').value = '';
         };
         
         console.log('Адмін-панель успішно завантажена');
-        
-        // Тестовий виклик для перевірки
-        setTimeout(() => {
-            console.log('Тест функцій:');
-            console.log('getCourses():', typeof getCourses);
-            console.log('window.admin:', window.admin);
-            console.log('siteData:', siteData);
-            
-            // Спробуємо відобразити курси
-            if (admin && typeof admin.renderCourses === 'function') {
-                admin.renderCourses();
-            }
-        }, 500);
-        
     } catch (error) {
         console.error('Помилка завантаження адмін-панелі:', error);
-        
-        // Показуємо повідомлення про помилку
-        const status = document.getElementById('github-status');
-        if (status) {
-            status.textContent = 'Помилка: ' + error.message;
-            status.className = 'status-message error';
-            status.classList.remove('hidden');
-        }
-        
         alert('Помилка завантаження адмін-панелі: ' + error.message);
     }
 });
