@@ -1,15 +1,6 @@
 // Базова структура даних
 const siteData = {
-  "courses": [
-    {
-      "id": "e",
-      "title": "eeee",
-      "description": "eeee",
-      "fullDescription": "eeee",
-      "image": "default-course.jpg",
-      "lessonsCount": 0
-    }
-  ],
+  "courses": [],
   "lessons": [],
   "settings": {
     "siteName": "Algorithmic Anchor",
